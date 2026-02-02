@@ -91,7 +91,6 @@ class Level:
         self.height = HEIGHT
         self.matrix = []
         # self.rooms = [Room(*r) for r in self._generate_rooms()]
-        
         self.rooms = [Room(*r) for r in self._generate_rooms_full_random()]
         
         self._place_rooms()
@@ -99,7 +98,6 @@ class Level:
         self.corridors = []
         self._create_corridors(self._connect_rooms())
         self._fix_corridors()
-        print(*self.rooms, sep='\n')
 
 
     def _generate_rooms_full_random(self) -> list:
@@ -187,6 +185,8 @@ class Level:
         # rooms = [(22, 70, 7, 19), (22, 30, 15, 13), (9, 6, 6, 10), (9, 63, 11, 9), (13, 49, 7, 11), 
         #          (2, 22, 7, 16), (36, 55, 9, 15), (18, 8, 12, 9), (2, 77, 7, 11)]
 
+        # rooms = [(1, 13, 11, 19), (25, 5, 12, 18), (28, 71, 13, 14), (43, 25, 6, 13), (15, 32, 6, 20), 
+        #          (36, 58, 9, 9), (2, 66, 15, 13), (27, 48, 12, 9), (13, 8, 9, 20)]
 
         print(f'rooms = {rooms}')
         return rooms       
@@ -271,8 +271,8 @@ class Level:
                 graph.append((2 * abs(y1 - y2) + abs(x1 - x2), i, j))
         
         graph.sort()
-        print(*graph, sep='\n')
-        print(graph[0])
+        # print(*graph, sep='\n')
+        # print(graph[0])
         edges = []
         vertex = [{i,} for i in range(ROOMS)]
         graph = iter(graph)
@@ -287,7 +287,7 @@ class Level:
                     for v in vertex[i]:
                         vertex[v] = vertex[i]
                 edges.append((i, j))
-        print(edges)
+        # print(f"edges={edges}")
         return edges
     
     def __repr__(self):
@@ -330,8 +330,8 @@ class Level:
 
             for i in range(y + 1, y + h - 1):
                 for j in range(x + 1, x + w - 1):
-                    # level[i][j] = str(r)
-                    level[i][j] = FLOOR
+                    level[i][j] = str(r)
+                    # level[i][j] = FLOOR
 
     def _create_corridors_old_version(self, edges:list[Room]):
         for e in range(len(edges)):
@@ -485,7 +485,7 @@ class Level:
         while i < r2.y + r2.h - 1:
             if self.matrix[i][r2.x] == DOOR_V:
                 y = i
-                i = 101
+                i = HEIGHT
             i += 1
         j = right_x
         while j > r1.x:
@@ -499,20 +499,26 @@ class Level:
         if x == -1:
             x = randint(r1.x + 1, right_x)
         i = top_y
-        while i < y:
-            j = right_x
-            while j < r2.x:
+        while i <= y:
+            j = r2.x - 1
+            while j > r2.x:
                 if self.matrix[i][j] in ROOM_WALLS:
-                    y = i - 1
-                j += 1 
+                    if i > top_y:
+                        y = i - 1
+                    i = HEIGHT
+                    j = 0
+                j -= 1 
             i += 1
 
-        j = right_x
-        while j > x:
-            i = top_y
-            while i < y:
+        j = r2.x - 1
+        while j >= x:
+            i = r1.y + r1.h
+            while i <= y:
                 if self.matrix[i][j] in ROOM_WALLS:
-                    x = j + 1
+                    if j < r.x - 1:
+                        x = j + 1
+                    j = 0
+                    i = HEIGHT
                 i += 1
             j -= 1    
             
@@ -606,7 +612,7 @@ class Level:
             x = randint(left_x, r1.x + r1.w - 2)
         i = top_y
         while i <= y:
-            j = left_x
+            j = r2.x + r2.w
             while j <= x:
                 if self.matrix[i][j] in ROOM_WALLS:
                     if i > top_y:
@@ -655,19 +661,31 @@ class Level:
         if x == -1:
             x = randint(r2.x + 1, right_x)
         if y == -1:
-            print(f'r1.y + 1 = {r1.y + 1}, bottom_y = {bottom_y}, x = {x}', end = ' ')
             y = randint(r1.y + 1, bottom_y)
-        i = bottom_y
+        print(f'y = {y}, bottom_y = {bottom_y}, r2.y = {r2.y}, x = {x}, r1.x = {r1.x}, right_x = {right_x}', end = ' ')
+        i = r2.y - 1
         while i >= y:
-            j = right_x
-            if self.matrix[i][j] in ROOM_WALLS:
-                y = i + 1
-                i += 1
-            while j >= x:
+            j = x
+            while j < r1.x:
                 if self.matrix[i][j] in ROOM_WALLS:
-                    x = j + 1
-                j -= 1
+                    if i < r2.y - 1:
+                        y = i + 1
+                    i = 0
+                    j = WIDTH
+                j += 1
             i -= 1
+        print(f'y = {y}, x = {x}, ')
+        j = r1.x - 1
+        while j >= x:
+            i = r2.y - 1
+            while i >= y:
+                if self.matrix[i][j] in ROOM_WALLS:
+                    if j < r1.x - 1:
+                        x = j + 1
+                    j = WIDTH
+                    i = 0
+                i -= 1
+            j -= 1
 
         for j in range(x, r1.x + 1):
             self.matrix[y][j] = CORR_HOR
@@ -690,7 +708,7 @@ class Level:
             s = (hor[0][1] + hor[1][1] - hor[2][1] - hor[3][1], ver[0][1] + ver[1][1] - ver[2][1] - ver[3][1])
             edges[e] = (v1, v2, hor, ver, s)
         edges.sort(key = lambda x: x[4], reverse = True)
-        print(*edges, sep='\n')
+        # print(*edges, sep='\n')
         for e in edges:
             v1, v2, hor, ver, _ = e
             r1 = self.rooms[v1]
@@ -807,7 +825,6 @@ class Level:
 
 
 if __name__ == '__main__':
-    # Level()
-    # print(Level(), flush=True)
     l = Level()
-    print(*l.rooms, sep='\n')
+    print(l, flush=True)
+    # print(*l.rooms, sep='\n')

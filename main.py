@@ -1,6 +1,14 @@
-def rouge():
-    pass
+from controller.conrtoller import Rouge
 
 
-if __name__ == 'main':
-    rouge()
+def main():
+    Rouge().game_loop()
+
+
+
+
+
+
+if __name__ == '__main__':
+    main()
+

@@ -11,8 +11,9 @@
 # ┻  # U+253B BOX DRAWINGS HEAVY UP AND HORIZONTAL
 # ╋  # U+254B BOX DRAWINGS HEAVY VERTICAL AND HORIZONTAL
 PLAYER = '@'
+EXIT =  '█' #'>'
 ROOMS = 9
-OFFSET = 2
+OFFSET = 0
 MIN_ROOM_WIDTH = 8 + OFFSET
 MAX_ROOM_WIDTH = 20 + OFFSET
 MIN_ROOM_HEIGHT = 6 + OFFSET
@@ -27,15 +28,15 @@ CORR_HOR = '━' #'═' # '·'
 WALL_HOR = '─' # '─'
 WALL_VER = '│' # '│'
 # CORNER = '-'
-ULCR = '┌' # '┌'
+TLCR = '┌' # '┌'
 BLCR = '└' # '└'
-URCR = '┐' # '┐' ┓
+TRCR = '┐' # '┐' ┓
 BRCR = '┘' # '┘'
-ROOM_CORNERS = (ULCR, URCR, BRCR, BLCR)
-ROOM_WALLS = (ULCR, URCR, BRCR, BLCR, WALL_HOR, WALL_VER)
-ULC = '┏' #'╔'  '┌'
+ROOM_CORNERS = (TLCR, TRCR, BRCR, BLCR)
+ROOM_WALLS = (TLCR, TRCR, BRCR, BLCR, WALL_HOR, WALL_VER)
+TLC = '┏' #'╔'  '┌'
 BLC = '┗' #'╚'  '└'
-URC = '┓'  #'╗' # '┐'
+TRC = '┓'  #'╗' # '┐'
 BRC = '┛' # '╝' # '┘'
 FLOOR = '·'
 GROUND = ' '

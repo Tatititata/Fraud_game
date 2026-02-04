@@ -10,10 +10,9 @@ from common.constants import *
 
 class Entity:
 
-    def __init__(self, y, x, id):
+    def __init__(self, pos, id):
         self.id = id
-        self.y = y
-        self.x = x
+        self.y, self.x = pos
         self.health = 1 # 0 = dead
         self.skill = 5
         self.energy = 10
@@ -30,8 +29,8 @@ class Entity:
 
 class Player(Entity):
 
-    def __init__(self, y, x, id):
-        super().__init__(y, x, id)
+    def __init__(self, pos, id):
+        super().__init__(pos, id)
         self.max_health = 10
         self.weapon = 1
         self.backpack = Backpack()

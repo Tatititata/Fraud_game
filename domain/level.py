@@ -37,6 +37,7 @@ class Room:
         self.walls.discard((y, x))
     
 class Corridor:
+
     def __init__(self, y1, x1, y2, x2):
         # y1 <= y2, x1 <= x2
         self.path = set((i, x1) for i in range(y1, y2 + 1)) | set((y2, j) for j in range(x1, x2 + 1))
@@ -49,7 +50,8 @@ class Level:
         self.width = WIDTH
         self.height = HEIGHT
         self.matrix = []
-        self.corridors = []
+        self.corridors = {}
+        self.gates = {}
         self.rooms = []
         sucsess = False
         while not sucsess:
@@ -274,8 +276,10 @@ class Level:
         self.matrix[r1.y + r1.h - 1][x] = DOOR_H
         r1.make_gate(r1.y + r1.h - 1, x)
         r2.make_gate(y, r2.x)
-        self.corridors.append(Corridor(r1.y + r1.h, x, y, x))
-        self.corridors.append(Corridor(y, x, y, r2.x - 1))
+        for cor in Corridor(r1.y + r1.h, x, y, x).path | Corridor(y, x, y, r2.x - 1).path:
+            self.corridors[cor] = ['c', None]
+        # for cor in Corridor(y, x, y, r2.x - 1).path:
+        #     self.corridors[cor] = ['c', None]
         print(f'y = {y}, x = {x} L')
 
     def _top_right_corner_connection_(self, r1:Room, r2:Room): # ┐ connection
@@ -331,8 +335,10 @@ class Level:
             self.matrix[i][x] = CORR_VER
         r1.make_gate(y, r1.x + r1.w - 1)
         r2.make_gate(r2.y, x)
-        self.corridors.append(Corridor(y, r1.x + r1.w, y, x))
-        self.corridors.append(Corridor(y, x, r2.y - 1, x))
+        for cor in Corridor(y, r1.x + r1.w, y, x).path | Corridor(y, x, r2.y - 1, x).path:
+            self.corridors[cor] = ['c', None]
+        # for cor in (Corridor(y, x, r2.y - 1, x)).path:
+        #     self.corridors[cor] = ['c', None]
         print(f'y = {y}, x = {x} ┐')
 
     def _bottom_right_corner_connection_(self, r1:Room, r2:Room): # ┘-connection
@@ -388,8 +394,10 @@ class Level:
         self.matrix[y][r2.x + r2.w - 1] = DOOR_V
         r1.make_gate(r1.y + r1.h - 1, x)
         r2.make_gate(y, r2.x + r2.w - 1)
-        self.corridors.append(Corridor(y, r2.x + r2.w, y, x))
-        self.corridors.append(Corridor(r1.y + r1.h, x, y, x))
+        for cor in Corridor(y, r2.x + r2.w, y, x).path | Corridor(r1.y + r1.h, x, y, x).path:
+            self.corridors[cor] = ['c', None]
+        # for cor in Corridor(r1.y + r1.h, x, y, x).path:
+        #     self.corridors[cor] = ['c', None]
         print(f'y = {y}, x = {x} ┘') 
 
     def _top_left_corner_connection_(self, r1:Room, r2:Room): # ┌-connection
@@ -445,8 +453,8 @@ class Level:
         self.matrix[r2.y][x] = DOOR_H
         r1.make_gate(y, r1.x)
         r2.make_gate(r2.y, x)
-        self.corridors.append(Corridor(y, x, y, r1.x - 1))
-        self.corridors.append(Corridor(y, x, r2.y - 1, x))
+        for cor in Corridor(y, x, y, r1.x - 1).path | Corridor(y, x, r2.y - 1, x).path:
+            self.corridors[cor] = ['c', None]
         print(f'y = {y}, x = {x} ┌')      
 
     def _create_corridors(self, edges:list[Room]):
@@ -489,7 +497,8 @@ class Level:
                 print(f'x = {x}')
                 r1.make_gate(r1.y + r1.h - 1, x)
                 r2.make_gate(r2.y, x)
-                self.corridors.append(Corridor(r1.y + r1.h, x, r2.y - 1, x))
+                for cor in Corridor(r1.y + r1.h, x, r2.y - 1, x).path:
+                    self.corridors[cor] = ['c', None]
                 for i in range(r1.y + r1.h - 1, r2.y + 1):
                     self.matrix[i][x] = CORR_VER
                 self.matrix[r1.y + r1.h - 1][x] = DOOR_H
@@ -517,7 +526,8 @@ class Level:
                     print(f'y = {y}')
                     r1.make_gate(y, r1.x + r1.w - 1)
                     r2.make_gate(y, r2.x)
-                    self.corridors.append(Corridor(y, r1.x + r1.w, y, r2.x + 1))
+                    for cor in Corridor(y, r1.x + r1.w, y, r2.x).path:
+                        self.corridors[cor] = ['c', None]
                     for i in range(r1.x + r1.w - 1, r2.x + 1):
                         self.matrix[y][i] = CORR_HOR
                     self.matrix[y][r1.x + r1.w - 1] = DOOR_V
@@ -572,17 +582,10 @@ class Level:
                             elif self.matrix[i][j - 1] in corridors: 
                                 self.matrix[i][j] = '┓'
 
-    # def _fix_corridors(self):
-    #     corridors = {}
-    #     for cor in self.corridors:
-    #         for c in cor.path:
-    #             corridors.setdefault(c, set()).update(cor.room_connect)
-    #     self.corridors = corridors
         
     def _fix_rooms_and_corridors(self):
         self.gates = dict((g, ['g', None, None]) for r in self.rooms for g in r.gate)
         self.rooms = dict((f, ['r', None]) for r in self.rooms for f in r.floor)
-        self.corridors = dict((p, ['c', None]) for c in self.corridors for p in c.path)
         self.coord = {**self.corridors, **self.rooms, **self.gates}
         
 

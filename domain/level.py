@@ -1,8 +1,6 @@
 from random import randint, choice
 import traceback
-import sys
 from common.constants import *
-from .entity import Player
 
 
 class Room:
@@ -133,9 +131,9 @@ class Level:
         self._place_corridors()
 
     def _update_matrix_corridors(self):
-        self.matrix = dict((floor, ['r', None]) for r in self.rooms for floor in r.floor)
+        self.matrix = dict((floor, [i, None]) for i, r in enumerate(self.rooms) for floor in r.floor)
         for c in self.corridors:
-            self.matrix[c] = ['c', None]
+            self.matrix[c] = [9, None]
 
     def _place_end(self, end):
         pos = choice(list(self.rooms[end].floor))
@@ -171,6 +169,7 @@ class Level:
         # rooms = [(5, 71, 13, 18), (31, 62, 7, 13), (10, 4, 15, 19), (18, 81, 12, 10), (37, 41, 11, 13), 
         #          (36, 2, 12, 10), (28, 18, 12, 18), (36, 87, 6, 11), (16, 50, 14, 16)]
 
+        rooms = [(1, 1, 6, 8), (1, 11, 8, 10)]
         # print(f'rooms = {rooms}')
         return rooms       
     

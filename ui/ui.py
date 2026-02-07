@@ -26,16 +26,15 @@ class UI:
         sys.stdout.write(s1 + s2 + endl.join(level))
         sys.stdout.flush()
 
-    def render(self, entities:list):
-        new_pos = set(entities)
-        self.restore_pos -= new_pos
-        for y, x, _ in self.restore_pos:
+    def render(self, entities:set):
+        self.restore_pos -= entities
+        for (y, x), _ in self.restore_pos:
             char = self.layout[y][x]
             sys.stdout.write(f'\033[{y+3};{x+3}H{char}')
-        for y, x, char in new_pos:
+        for (y, x), char in entities:
             sys.stdout.write(f'\033[{y+3};{x+3}H{char}')
         sys.stdout.flush()
-        self.restore_pos = new_pos
+        self.restore_pos = entities
         # sys.stdout.write('\033[2J\033[H')  # Очистка экрана
 
     

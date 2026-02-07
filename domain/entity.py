@@ -7,38 +7,6 @@ from common.constants import *
 #   + сила,
 #   + текущее оружие;
 
-
-class Entity:
-
-    def __init__(self, pos, id):
-        self.id = id
-        self.y, self.x = pos
-        self.health = 1 # 0 = dead
-        self.skill = 5
-        self.energy = 10
-
-    def pos(self):
-        return self.y, self.x
-
-
-
-
-        
-
-
-
-class Player(Entity):
-
-    def __init__(self, pos, id):
-        super().__init__(pos, id)
-        self.max_health = 10
-        self.weapon = 1
-        self.backpack = Backpack()
-
-
-    
-
-class Enemy(Entity):
 # - Каждый противник имеет аналогичные игроку характеристики здоровья, ловкости и силы, 
 # дополнительно к этому имеет характеристику враждебности.
 # - Характеристика враждебности определяет расстояние, с которого противник начинает преследовать игрока.
@@ -61,11 +29,48 @@ class Enemy(Entity):
 # - Если игрок находится в области, когда монстр должен начать его преследовать, 
 # но при этом не существует пути к нему, то монстр продолжает двигаться случайным образом по своему паттерну.
 
-    def __init__(self, y, x, type, animosity):
-        super().__init__(y, x)
-        self.type = type
-        self.animosity = animosity
+class Entity:
+    def __init__(self, pos):
+        self.pos = pos
+        self.health = 1 # 0 = dead
+        self.dexterity = 5
+        self.strength = 10
 
+
+
+class Player(Entity):
+    def __init__(self, pos):
+        super().__init__(pos)
+        self.id = PLAYER
+        self.max_health = 10
+        self.weapon = 1
+        self.backpack = Backpack()
+
+
+class Snake(Entity):
+    def __init__(self, pos):
+        super().__init__(pos)
+        self.id = SNAKE
+        
+class Ogre(Entity):
+    def __init__(self, pos):
+        super().__init__(pos)
+        self.id = OGRE
+
+class Vampire(Entity):
+    def __init__(self, pos):
+        super().__init__(pos)
+        self.id = VAMPIRE
+
+class Ghost(Entity):
+    def __init__(self, pos):
+        super().__init__(pos)
+        self.id = GHOST
+
+class Zombie(Entity):
+    def __init__(self, pos):
+        super().__init__(pos)
+        self.id = ZOMBIE
 
 class Backpack:
 
@@ -83,6 +88,8 @@ class Backpack:
         self.elixir = 1
         self.scroll = 1
         self.weapon = {}
+
+
 
 
 if __name__ == '__main__':

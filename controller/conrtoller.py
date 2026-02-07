@@ -6,38 +6,33 @@ import sys
 
 class Rouge:
 
-    def __init__(self):
-        self.level = 0
-        self.model = None
-        self.game_over = False
-
-    def game_loop(self):
+    @staticmethod
+    def game_loop():
 
 
         # print(self.level)
         # return
-
+        game_over = False
         level = Level()
         with UI(level.layout) as ui:
-            self.model = Model(self.level, level.matrix, level.rooms, level.start)
-            ui.render(self.model.entities())
+            model = Model(0, level.matrix, level.rooms, level.start)
+            ui.render(model.entities())
             # self.level.start_game()
             # sys.stdout.write('\r\n' + str(self.level.corridors) + '\r\n')
             # sys.stdout.write('\r\n' + str(self.level.rooms) + '\r\n')
             # sys.stdout.write('\r\n' + str(self.level.gates) + '\r\n')
-            while not self.game_over and self.level < 22:
+            while not game_over and model.level < 22:
                 ch = ui.getchar()
                 if ch == 'q':
-                    self.game_over = True
+                    game_over = True
                     ui.print_gameover_screen()
                 else:
-                    self.model.handle_move(ch)
-                    if self.model.passed:
-                        self.level += 1
+                    model.handle_move(ch)
+                    if model.passed:
                         level = Level()
-                        self.model = Model(self.level, level.matrix, level.rooms, level.start)
-                        ui.update_layout(self.level.layout)
-                    ui.render(self.model.entities())
+                        model = Model(model.level + 1, level.matrix, level.rooms, level.start)
+                        ui.update_layout(level.layout)
+                    ui.render(model.entities())
                 
                 
 

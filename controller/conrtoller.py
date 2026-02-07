@@ -14,6 +14,8 @@ class Rouge:
         # return
         game_over = False
         level = Level()
+        # for c in level.corridors:
+        #     print(level.matrix[c])
         with UI(level.layout) as ui:
             model = Model(0, level.matrix, level.rooms, level.start)
             ui.render(model.entities())

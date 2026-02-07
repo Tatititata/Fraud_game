@@ -36,17 +36,17 @@ import sys
 class Entity:
     def __init__(self, pos):
         self.pos = pos
-        self.health = 1 # 0 = dead
-        self.dexterity = 5
-        self.strength = 10
+        self.health = 20 # 0 = dead
+        self.dexterity = 10 # Ловкость (dexterity) влияет на шанс попадания: hit_chance = a.dex / (a.dex + d.dex).
+        self.strength = 10 # Сила (strength) — базовый урон: damage = max(1, a.str - d.str // 3).
 
 
 class Player(Entity):
     def __init__(self, pos):
         super().__init__(pos)
         self.id = PLAYER
-        self.max_health = 10
-        self.weapon = 1
+        self.max_health = 20
+        self.weapon = set()
         self.backpack = Backpack()
 
 
@@ -57,6 +57,7 @@ class Monster(Entity):
         self._count = 0
         self.id = id
         self.room = r
+        self.hostility = 0
         self.valid_moves = ((1, 0), (0, 1), (-1, 0), (0, -1))
 
     def _patrol(self, model):
@@ -67,7 +68,7 @@ class Monster(Entity):
     def move(self, model, player):
         if self._player_visible(model, player):
             path = self._get_path_to_player(player)
-            self._attack(path)
+            self._attack(model, path)
         else:
             if self.room != model.room_number(self.pos):
                 self._go_home(model)
@@ -77,23 +78,22 @@ class Monster(Entity):
     def _go_home(self, model):
         stack = [self.pos]
         path = {self.pos: None}
-        while True:
+        while stack:
             new_stack = []
             for pos in stack:
                 for move in self.valid_moves:
                     new_pos = (pos[0] + move[0], pos[1]+ move[1])
-                    room = model.room_number(new_pos)
-                    if room is not None:
-                        if self.room == room:
-                            sys.stdout.write(f'\033[{1 + self._count};{103}H{new_pos}, {path}')
-                            self._count += 1
-                            while pos != self.pos:
-                                new_pos = pos
-                                pos = path[pos]
-                            model.place_entity(new_pos, self)
-                            return
-                        new_stack.append(new_pos)
-                        path[new_pos] = pos
+                    if new_pos not in path:
+                        room = model.room_number(new_pos)
+                        if room is not None:
+                            if self.room == room:
+                                while pos != self.pos:
+                                    new_pos = pos
+                                    pos = path[pos]
+                                model.place_entity(new_pos, self)
+                                return
+                            new_stack.append(new_pos)
+                            path[new_pos] = pos
             stack = new_stack
 
     def _player_visible(self, model, player): 
@@ -175,36 +175,59 @@ class Monster(Entity):
                     path.append((y, x))
                 d += 2*dx 
 
-    def _attack(self, path):
-        pass
+    def _attack(self, model, path):
+        if path:
+            model.place_entity(path[0], self)
+        else:
+            model.monster_attacks_player(self)
 
 
 
 
 
 class Snake(Monster):
-    def __init__(self, pos, r):
+    def __init__(self, pos, r, level):
         super().__init__(pos, r, SNAKE)
+        self.health = 20 + level * 5
+        self.dexterity = 25 + level
+        self.strength = 8 + level
+        self.hostility = 10
 
         
 class Ogre(Monster):
-    def __init__(self, pos, r, ):
+    def __init__(self, pos, r, level):
         super().__init__(pos, r, OGRE)
+        self.health = 50 + level * 5
+        self.dexterity = 5 + level
+        self.strength = 24 + level
+        self.hostility = 6
 
 
 class Vampire(Monster):
-    def __init__(self, pos, r, ):
+    def __init__(self, pos, r, level):
         super().__init__(pos, r, VAMPIRE)
+        self.health = 25 + level * 5
+        self.dexterity = 16 + level
+        self.strength = 10 + level
+        self.hostility = 8
 
 
 class Ghost(Monster):
-    def __init__(self, pos, r, ):
+    def __init__(self, pos, r, level):
         super().__init__(pos, r, GHOST)
+        self.health = 15 + level * 5
+        self.dexterity = 18 + level
+        self.strength = 4 + level
+        self.hostility = 4
 
 
 class Zombie(Monster):
-    def __init__(self, pos, r, ):
+    def __init__(self, pos, r, level):
         super().__init__(pos, r, ZOMBIE)
+        self.health = 30 + level * 5
+        self.dexterity = 3 + level
+        self.strength = 8 + level
+        self.hostility = 5
 
 
 class Backpack:

@@ -43,9 +43,11 @@ TLC = '┏' #'╔'  '┌'
 BLC = '┗' #'╚'  '└'
 TRC = '┓'  #'╗' # '┐'
 BRC = '┛' # '╝' # '┘'
-FLOOR = '·'
+FLOOR = '\033[2m·\033[0m' #'·'
 GROUND = ' '
 DOOR_H = '┃' # '╫' # '╬' '┼' door on horizontal wall
 DOOR_V =  '━' #'╪' # '╬' '┼' door on vertical wall
 WIDTH = 100
 HEIGHT = 50
+
+

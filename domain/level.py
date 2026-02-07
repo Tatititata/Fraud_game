@@ -52,9 +52,6 @@ class Room:
         return f"[y={self.y}, x={self.x}, h={self.h}, w={self.w}, gate={repr(self.gate)}]"
     
 
-
-
-
 class Corridor:
 
     def __init__(self, y1, x1, y2, x2):
@@ -62,7 +59,6 @@ class Corridor:
         self.path = set()
         self.path.update(set((i, x1) for i in range(y1, y2 + 1)))
         self.path.update(set((y2, j) for j in range(x1, x2 + 1)))
-
 
 
 class Level:

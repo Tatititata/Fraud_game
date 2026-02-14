@@ -1,11 +1,14 @@
 from random import randint, choice
 import traceback
 from common.constants import *
-
+from common.playground import *
+import sys
 
 class Room:
-    def __init__(self, y, x, height, width):
+    def __init__(self, id, data):
         # y, x = up left corner
+        y, x, height, width = data
+        self.id = id
         self.y = y
         self.x = x
         self.h = height
@@ -29,6 +32,7 @@ class Room:
     def make_gate(self, y, x):
         pos = (y, x)
         self.gate.add(pos)
+        # self.floor.add(pos)
         if pos in self.left_wall:
             self.left_wall.discard(pos)
         elif pos in self.right_wall:
@@ -38,49 +42,49 @@ class Room:
         else:
             self.bottom_wall.discard(pos)
 
-
     def __repr__(self):
-        # return 'Walls' + repr(self.walls) + '\n' + 'Floor' + repr(self.floor)
-
-        # matrix = [[GROUND] * WIDTH for _ in range(HEIGHT)]
-        # for i, j in self.floor:
-        #     matrix[i][j] = '.'
-        # for i, j in self.walls:
-        #     matrix[i][j] = '#'
-        # return '\n'.join(''.join(m) for m in matrix)
-
         return f"[y={self.y}, x={self.x}, h={self.h}, w={self.w}, gate={repr(self.gate)}]"
     
 
 class Corridor:
 
-    def __init__(self, y1, x1, y2, x2):
+    def __init__(self, y1, x1, y2, x2, r1, r2):
+
+        self.connecting = {r1, r2}
+
         # y1 <= y2, x1 <= x2
         self.path = set()
+        self.add_path(y1, x1, y2, x2)
+
+    def add_path(self, y1, x1, y2, x2):
         self.path.update(set((i, x1) for i in range(y1, y2 + 1)))
         self.path.update(set((y2, j) for j in range(x1, x2 + 1)))
 
+    def __repr__(self):
+        return str(self.connecting)
 
-class Level:
+
+
+class Generator:
     def __init__(self) -> None:
-        self.matrix = None
-        self.corridors = None
-        self.rooms = None
+        self._matrix = None
+        self._corridors = None
+        self._rooms = None
         self.layout = None
         success = False
         while not success:
             try:
-                self.matrix = set((0, j) for j in range(WIDTH)) 
-                self.matrix.update(set((i, 0) for i in range(HEIGHT)))
-                self.corridors = set()
-                # self.rooms = [Room(*r) for r in self._generate_rooms()]
-                self.rooms = [Room(*r) for r in self._generate_rooms_full_random()]
-                self.matrix = set(w for r in self.rooms for w in r.walls())
-                edges, self.start, end = self._connect_rooms()
+                # border is not valid for rooms:
+                self._matrix = set((0, j) for j in range(WIDTH)) 
+                self._matrix.update(set((i, 0) for i in range(HEIGHT)))
+
+                # self._rooms = [Room(*r) for r in self._generate_rooms()]
+                self._rooms = [Room(i, r) for i, r in enumerate(self._generate_rooms_full_random())]
+
+                # no corridors yet:
+                edges, self._start, self._end = self._connect_rooms()
                 success = self._create_corridors(edges)
-                self._update_matrix_corridors()
-                self._create_layout()
-                self._place_end(end)
+                self._update_corridors()
 
             except Exception as e:
                 traceback.print_exc()
@@ -88,53 +92,45 @@ class Level:
                 
 
     def _create_layout(self):
-        self.layout = [[GROUND] * WIDTH for _ in range(HEIGHT)]
-        for i in range(HEIGHT):
-            self.layout[i][0] = WALL_VER
-            self.layout[i][WIDTH - 1] = WALL_VER
+        self.layout = {}
 
-        for i in range(WIDTH):
-            self.layout[0][i] = WALL_HOR
-            self.layout[HEIGHT - 1][i] = WALL_HOR
-
-        self.layout[0][0] = TLCR
-        self.layout[0][WIDTH - 1] = TRCR
-        self.layout[HEIGHT - 1][0] = BLCR
-        self.layout[HEIGHT - 1][WIDTH - 1] = BRCR
-
-
-        for i, r in enumerate(self.rooms):
+        for r in self._rooms:
             for y, x in r.floor:
-                # self.layout[y][x] = str(i)
-                self.layout[y][x] = FLOOR
+                self.layout[(y, x)] = FLOOR
+                # self.layout[(y, x)] = str(r.id)
             for y, x in r.left_wall:
-                self.layout[y][x] = WALL_VER
+                self.layout[(y, x)] = WALL_VER
             for y, x in r.right_wall:
-                self.layout[y][x] = WALL_VER
+                self.layout[(y, x)] = WALL_VER
             for y, x in r.top_wall:
-                self.layout[y][x] = WALL_HOR
+                self.layout[(y, x)] = WALL_HOR
             for y, x in r.bottom_wall:
-                self.layout[y][x] = WALL_HOR
-            y, x = r.blc
-            self.layout[y][x] = BLCR
-            y, x = r.tlc
-            self.layout[y][x] = TLCR
-            y, x = r.brc
-            self.layout[y][x] = BRCR
-            y, x = r.trc
-            self.layout[y][x] = TRCR
+                self.layout[(y, x)] = WALL_HOR
 
+            y, x = r.blc
+            self.layout[(y, x)] = BLCR
+            y, x = r.tlc
+            self.layout[(y, x)] = TLCR
+            y, x = r.brc
+            self.layout[(y, x)] = BRCR
+            y, x = r.trc
+            self.layout[(y, x)] = TRCR
+            
         self._place_corridors()
 
-    def _update_matrix_corridors(self):
-        self.matrix = dict((floor, [i, None]) for i, r in enumerate(self.rooms) for floor in r.floor)
-        for c in self.corridors:
-            self.matrix[c] = [9, None]
-
-    def _place_end(self, end):
-        pos = choice(list(self.rooms[end].floor))
-        self.matrix[pos][1] = EXIT
-        self.layout[pos[0]][pos[1]] = EXIT
+    def _update_corridors(self):
+        indexes = set()
+        for i in range(len(self._corridors)):
+            if i not in indexes:
+                ci = self._corridors[i]
+                for j in range(i + 1, len(self._corridors)):
+                    if j not in indexes:
+                        cj = self._corridors[j]
+                        if ci.path & cj.path:
+                            ci.connecting.update(cj.connecting)
+                            ci.path.update(cj.path)
+                            indexes.add(j)
+        self._corridors = [c for i, c in enumerate(self._corridors) if i not in indexes]
 
     def _generate_rooms_full_random(self) -> list:
         rooms = []
@@ -150,14 +146,14 @@ class Level:
                     while i < h and created:
                         j = 0
                         while j < w and created:
-                            if (y + i, x + j) in self.matrix:
+                            if (y + i, x + j) in self._matrix:
                                 created = False
                             j += 1
                         i += 1
                     if created:
                         for i in range(h):
                             for j in range(w):
-                                self.matrix.add((y + i, x + j))
+                                self._matrix.add((y + i, x + j))
                         rooms.append((y + OFFSET // 2, x + OFFSET // 2, h - OFFSET, w - OFFSET))
         # rooms = [(30, 3, 9, 8), (15, 56, 14, 8), (31, 33, 6, 8), (11, 1, 7, 10), (32, 13, 14, 8), 
         #          (32, 81, 10, 13), (17, 81, 6, 10), (35, 67, 14, 10), (9, 29, 13, 11)]
@@ -171,7 +167,7 @@ class Level:
     
     def _generate_rooms(self) -> list:
         rooms = []
-        self.matrix = [[0] * WIDTH for _ in range(HEIGHT)]
+        self._matrix = [[0] * WIDTH for _ in range(HEIGHT)]
         count = 0
         for ii in ((1, 16), (17, 32), (33, 48)):
             for jj in ((1, 33), (34, 66), (67, 99)):
@@ -188,7 +184,7 @@ class Level:
                         while i < h and created:
                             j = 0
                             while j < w and created:
-                                if self.matrix[y + i][x + j]:
+                                if self._matrix[y + i][x + j]:
                                     created = False
                                     j = w
                                     i = h
@@ -197,7 +193,7 @@ class Level:
                         if created:
                             for i in range(h):
                                 for j in range(w):
-                                    self.matrix[y + i][x + j] = count
+                                    self._matrix[y + i][x + j] = count
                             rooms.append((y + OFFSET // 2, x + OFFSET // 2, h - OFFSET, w - OFFSET))
                             count += 1
         # print(f'rooms = {rooms}')
@@ -206,9 +202,9 @@ class Level:
     def _connect_rooms(self):
         graph = []
         for i in range(ROOMS):
-            y1, x1 = self.rooms[i].center
+            y1, x1 = self._rooms[i].center
             for j in range(i + 1, ROOMS):
-                y2, x2 = self.rooms[j].center
+                y2, x2 = self._rooms[j].center
                 graph.append((abs(y1 - y2) + abs(x1 - x2), i, j))
         
         graph.sort()
@@ -266,7 +262,7 @@ class Level:
         while i <= y:
             j = r2.x - 1
             while j > r2.x:
-                if (i, j) in self.matrix:
+                if (i, j) in self._matrix:
                     if i > top_y:
                         y = i - 1
                     i = HEIGHT
@@ -277,7 +273,7 @@ class Level:
         while j >= x:
             i = r1.y + r1.h
             while i <= y:
-                if (i, j) in self.matrix:
+                if (i, j) in self._matrix:
                     if j < r2.x - 1:
                         x = j + 1
                     j = 0
@@ -286,7 +282,10 @@ class Level:
             j -= 1    
         r1.make_gate(r1.y + r1.h - 1, x)
         r2.make_gate(y, r2.x)
-        self.corridors.update(Corridor(r1.y + r1.h - 1, x, y, x).path | Corridor(y, x, y, r2.x).path)
+        c = Corridor(r1.y + r1.h - 1, x, y, x, r1.id, r2.id)
+        c.add_path(y, x, y, r2.x)
+        # self._corridors.update(Corridor(r1.y + r1.h - 1, x, y, x).path | Corridor(y, x, y, r2.x).path)
+        self._corridors.append(c)
         # print(f'y = {y}, x = {x} L')
 
     def _top_right_corner_connection_(self, r1:Room, r2:Room): # ┐ connection
@@ -316,7 +315,7 @@ class Level:
         while i >= y:
             j = left_x
             while j <= x:
-                if (i, j) in self.matrix:
+                if (i, j) in self._matrix:
                     if i < bottom_y:
                         y = i + 1
                     i = 0
@@ -327,7 +326,7 @@ class Level:
         while j <= x:
             i = bottom_y
             while i >= y:
-                if (i, j) in self.matrix:
+                if (i, j) in self._matrix:
                     if j > left_x:
                         x = j - 1
                     i = 0
@@ -336,7 +335,10 @@ class Level:
             j += 1
         r1.make_gate(y, r1.x + r1.w - 1)
         r2.make_gate(r2.y, x)
-        self.corridors.update(Corridor(y, r1.x + r1.w - 1, y, x).path | Corridor(y, x, r2.y, x).path)
+        c = Corridor(y, r1.x + r1.w - 1, y, x, r1.id, r2.id)
+        c.add_path(y, x, r2.y, x)
+        self._corridors.append(c)
+        # self._corridors.update(Corridor(y, r1.x + r1.w - 1, y, x).path | Corridor(y, x, r2.y, x).path)
         # print(f'y = {y}, x = {x} ┐')
 
     def _bottom_right_corner_connection_(self, r1:Room, r2:Room): # ┘-connection
@@ -365,7 +367,7 @@ class Level:
         while i <= y:
             j = r2.x + r2.w
             while j <= x:
-                if (i, j) in self.matrix:
+                if (i, j) in self._matrix:
                     if i > top_y:
                         y = i - 1
                     i = HEIGHT
@@ -376,7 +378,7 @@ class Level:
         while j <= x:
             i = top_y
             while i <= y:
-                if (i, j) in self.matrix:
+                if (i, j) in self._matrix:
                     if j > left_x:
                         x = j - 1
                     j = WIDTH
@@ -385,7 +387,11 @@ class Level:
             j += 1
         r1.make_gate(r1.y + r1.h - 1, x)
         r2.make_gate(y, r2.x + r2.w - 1)
-        self.corridors.update(Corridor(y, r2.x + r2.w - 1, y, x).path | Corridor(r1.y + r1.h - 1, x, y, x).path)
+        c = Corridor(y, r2.x + r2.w - 1, y, x, r1.id, r2.id)
+        c.add_path(r1.y + r1.h - 1, x, y, x)
+        self._corridors.append(c)
+        # self._corridors.update(Corridor(y, r2.x + r2.w - 1, y, x).path | Corridor(r1.y + r1.h - 1, x, y, x).path)
+
         # print(f'y = {y}, x = {x} ┘') 
 
     def _top_left_corner_connection_(self, r1:Room, r2:Room): # ┌-connection
@@ -413,7 +419,7 @@ class Level:
         while i >= y:
             j = x
             while j < r1.x:
-                if (i, j) in self.matrix:
+                if (i, j) in self._matrix:
                     if i < bottom_y - 1:
                         y = i + 1
                     i = 0
@@ -425,7 +431,7 @@ class Level:
         while j >= x:
             i = r2.y - 1
             while i >= y:
-                if (i, j) in self.matrix:
+                if (i, j) in self._matrix:
                     if j < r1.x - 1:
                         x = j + 1
                     j = 0
@@ -434,14 +440,18 @@ class Level:
             j -= 1
         r1.make_gate(y, r1.x)
         r2.make_gate(r2.y, x)
-        self.corridors.update(Corridor(y, x, y, r1.x).path | Corridor(y, x, r2.y, x).path)
-        # print(f'y = {y}, x = {x} ┌')      
+        c = Corridor(y, x, y, r1.x, r1.id, r2.id)
+        c.add_path(y, x, r2.y, x)
+        self._corridors.append(c)
+        # self._corridors.update(Corridor(y, x, y, r1.x).path | Corridor(y, x, r2.y, x).path)
+         # print(f'y = {y}, x = {x} ┌')      
 
     def _create_corridors(self, edges:list[Room]):
+        self._corridors = []
         for e in range(len(edges)):
             v1, v2 = edges[e]
-            r1 = self.rooms[v1]
-            r2 = self.rooms[v2]
+            r1 = self._rooms[v1]
+            r2 = self._rooms[v2]
             hor = [(r1.x + 1, 1), (r1.x + r1.w - 1, -1), (r2.x + 1, 1), (r2.x + r2.w - 1, -1)]
             ver = [(r1.y + 1, 1), (r1.y + r1.h - 1, -1), (r2.y + 1, 1), (r2.y + r2.h - 1, -1)]
             hor.sort()
@@ -453,8 +463,8 @@ class Level:
         # return True
         for e in edges:
             v1, v2, hor, ver, _ = e
-            r1 = self.rooms[v1]
-            r2 = self.rooms[v2]
+            r1 = self._rooms[v1]
+            r2 = self._rooms[v2]
             # print(v1, v2, end = ' ')
             # print(hor, ver, end = ' ')
             if hor[0][1] + hor[1][1]:
@@ -468,9 +478,9 @@ class Level:
                     l = x_min
                     r = x_max
                     while (l < r):
-                        if (i, l) in self.matrix:
+                        if (i, l) in self._matrix:
                             x_min = l + 1
-                        if (i, r) in self.matrix:
+                        if (i, r) in self._matrix:
                             x_max = r - 1
                         l += 1
                         r -= 1
@@ -478,7 +488,8 @@ class Level:
                 # print(f'x = {x}')
                 r1.make_gate(r1.y + r1.h - 1, x)
                 r2.make_gate(r2.y, x)
-                self.corridors.update(Corridor(r1.y + r1.h - 1, x, r2.y, x).path)
+                c = Corridor(r1.y + r1.h - 1, x, r2.y, x, r1.id, r2.id)
+                self._corridors.append(c)
 
             elif ver[0][1] + ver[1][1]:
                     # left-right connection
@@ -491,9 +502,9 @@ class Level:
                         t = y_min
                         b = y_max
                         while(t < b):
-                            if (t, i) in self.matrix:
+                            if (t, i) in self._matrix:
                                 y_min = t + 1
-                            if (b, i) in self.matrix:
+                            if (b, i) in self._matrix:
                                 y_max = b - 1
                             t += 1
                             b -= 1
@@ -501,11 +512,12 @@ class Level:
                     # print(f'y = {y}')
                     r1.make_gate(y, r1.x + r1.w - 1)
                     r2.make_gate(y, r2.x)
-                    self.corridors.update(Corridor(y, r1.x + r1.w - 1, y, r2.x).path)
+                    c = Corridor(y, r1.x + r1.w - 1, y, r2.x, r1.id, r2.id)
+                    self._corridors.append(c)
                     # for i in range(r1.x + r1.w - 1, r2.x + 1):
-                    #     self.matrix[y][i] = CORR_HOR
-                    # self.matrix[y][r1.x + r1.w - 1] = DOOR_V
-                    # self.matrix[y][r2.x] = DOOR_V
+                    #     self._matrix[y][i] = CORR_HOR
+                    # self._matrix[y][r1.x + r1.w - 1] = DOOR_V
+                    # self._matrix[y][r2.x] = DOOR_V
             else:
                 # return True
                 if r1.y > r2.y:
@@ -526,60 +538,17 @@ class Level:
                         # print('┌ connection')
         return True
 
-    def _place_corridors(self):     
-        # corridors = '┣┫┳╋┻┏┓┗┛┃━'
-        for i in range(1, HEIGHT - 1):
-            for j in range(1, WIDTH - 1):
-                if (i, j) in self.corridors:
-                    if (i - 1, j) in self.corridors:
-                        if (i + 1, j) in self.corridors:
-                            if (i, j + 1) in self.corridors: 
-                                if (i, j - 1) in self.corridors: 
-                                    self.layout[i][j] = '╋' #1
-                                else:
-                                    self.layout[i][j] = '┣'#2
-                            elif (i, j - 1)  in self.corridors: 
-                                self.layout[i][j] = '┫'
-                            else:
-                                self.layout[i][j] = '┃'
-                        else:
-                            if (i, j + 1) in self.corridors: 
-                                if (i, j - 1) in self.corridors: 
-                                    self.layout[i][j] = '┻'
-                                else:
-                                    self.layout[i][j] = '┗'
-                            elif (i, j - 1) in self.corridors: 
-                                self.layout[i][j] = '┛'
-                            else:
-                                self.layout[i][j] = '┃'
-                    elif (i + 1, j) in self.corridors:
-                            if (i, j + 1) in self.corridors: 
-                                if (i, j - 1) in self.corridors: 
-                                    self.layout[i][j] = '┳'
-                                else:
-                                    self.layout[i][j] = '┏'
-                            elif (i, j - 1) in self.corridors: 
-                                self.layout[i][j] = '┓'
-                            else:
-                                self.layout[i][j] = '┃'
-                    else:
-                        self.layout[i][j] = '━'
-        
+    @property
+    def data(self):
+        return self._rooms, self._corridors, self._start, self._end
 
-
-
-        
-
-
-
-
-
-
-# ┣  ┫  ┳   ┻   ╋   ┏   ┓   ┗  ┛  
+    def __repr__(self):
+        s = '\r\n'.join(str(r) for r in self._rooms)
+        return f'{s}, \r\n{self._corridors}\r\n'
 
 
 
 if __name__ == '__main__':
-    l = Level()
+    l = Generator()
     print(l, flush=True)
-    # print(*l.rooms, sep='\n')
+    print(*l.rooms, sep='\n')

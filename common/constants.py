@@ -10,13 +10,10 @@
 # ┳  # U+2533 BOX DRAWINGS HEAVY DOWN AND HORIZONTAL
 # ┻  # U+253B BOX DRAWINGS HEAVY UP AND HORIZONTAL
 # ╋  # U+254B BOX DRAWINGS HEAVY VERTICAL AND HORIZONTAL
-PLAYER = '\033[1;37m@\033[0m'
-ZOMBIE = '\033[1;32mZ\033[0m'
-VAMPIRE = '\033[1;31mV\033[0m'
-GHOST = '\033[1;37mG\033[0m'
-OGRE = '\033[1;33mO\033[0m'
-SNAKE = '\033[1;37mS\033[0m'
+
+
 EXIT =  '█' #'>'
+
 ROOMS = 9
 OFFSET = 0
 MIN_ROOM_WIDTH = 8 + OFFSET
@@ -26,28 +23,11 @@ MAX_ROOM_HEIGHT = 15 + OFFSET
 
 MIN_ROOM_AREA = MIN_ROOM_WIDTH * MIN_ROOM_HEIGHT
 MAX_ROOM_AREA = MAX_ROOM_WIDTH * MAX_ROOM_HEIGHT
-CORRIDOR = 1
-CORR_VER = '┃' #'║' # '·'
-CORR_HOR = '━' #'═' # '·'
 
-WALL_HOR = '─' # '─'
-WALL_VER = '│' # '│'
-# CORNER = '-'
-TLCR = '┌' # '┌'
-BLCR = '└' # '└'
-TRCR = '┐' # '┐' ┓
-BRCR = '┘' # '┘'
-ROOM_CORNERS = (TLCR, TRCR, BRCR, BLCR)
-ROOM_WALLS = (TLCR, TRCR, BRCR, BLCR, WALL_HOR, WALL_VER)
-TLC = '┏' #'╔'  '┌'
-BLC = '┗' #'╚'  '└'
-TRC = '┓'  #'╗' # '┐'
-BRC = '┛' # '╝' # '┘'
-FLOOR = '\033[2m·\033[0m' #'·'
-GROUND = ' '
-DOOR_H = '┃' # '╫' # '╬' '┼' door on horizontal wall
-DOOR_V =  '━' #'╪' # '╬' '┼' door on vertical wall
 WIDTH = 100
 HEIGHT = 50
+
+
+
 
 

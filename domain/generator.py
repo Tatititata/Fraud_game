@@ -43,6 +43,7 @@ class Room:
             self.bottom_wall.discard(pos)
 
     def __repr__(self):
+        return repr({k: v for k, v in self.__dict__.items() if not k.startswith('_')})
         return f"[y={self.y}, x={self.x}, h={self.h}, w={self.w}, gate={repr(self.gate)}]"
     
 
@@ -61,6 +62,7 @@ class Corridor:
         self.path.update(set((y2, j) for j in range(x1, x2 + 1)))
 
     def __repr__(self):
+        return repr({k: v for k, v in self.__dict__.items() if not k.startswith('_')})
         return str(self.connecting)
 
 
@@ -90,33 +92,6 @@ class Generator:
                 traceback.print_exc()
                 success = False
                 
-
-    def _create_layout(self):
-        self.layout = {}
-
-        for r in self._rooms:
-            for y, x in r.floor:
-                self.layout[(y, x)] = FLOOR
-                # self.layout[(y, x)] = str(r.id)
-            for y, x in r.left_wall:
-                self.layout[(y, x)] = WALL_VER
-            for y, x in r.right_wall:
-                self.layout[(y, x)] = WALL_VER
-            for y, x in r.top_wall:
-                self.layout[(y, x)] = WALL_HOR
-            for y, x in r.bottom_wall:
-                self.layout[(y, x)] = WALL_HOR
-
-            y, x = r.blc
-            self.layout[(y, x)] = BLCR
-            y, x = r.tlc
-            self.layout[(y, x)] = TLCR
-            y, x = r.brc
-            self.layout[(y, x)] = BRCR
-            y, x = r.trc
-            self.layout[(y, x)] = TRCR
-            
-        self._place_corridors()
 
     def _update_corridors(self):
         indexes = set()

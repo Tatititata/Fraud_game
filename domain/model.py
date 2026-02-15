@@ -10,6 +10,8 @@ import sys
 
 class Model:
 
+    BACKPACK_SHOW_MENU = {'j': FOOD, 'h': WEAPON, 'e': SCROLL, 'k':POTION}
+
     def __init__(self, player, data, level):
         self.level = level
         self.passed = False
@@ -37,6 +39,16 @@ class Model:
         self._visible = set()
         self._explored = set()
         self._restores_data = set()
+
+        with open('log.txt', 'w') as f:
+            for key in self._rooms:
+                f.write(f"{key}\n")
+            for key in self._corridors:
+                f.write(f"{key}\n")
+            for key in self._monsters:
+                f.write(f"{key}\n")
+            f.write(f"{self._items}\n")
+            f.write(f"{self._player}\n")
 
     def _move_player(self, char):
         new_y, new_x = self._player.pos
@@ -213,7 +225,9 @@ class Model:
                 if pos in self._rooms[i].gate:
                     idx = i
         if idx < ROOMS:
-            visible.update(self._rooms[idx].floor)
+            r = self._rooms[idx]
+            visible.update(r.floor)
+            visible.update(r.gate)
             if not self._visited[idx]:
                 self._visited[idx] = 1
                 self._explored.update(self._rooms[idx].walls())
@@ -298,6 +312,9 @@ class Model:
     @property
     def player(self):
         return self._player
+
+    def treasures_collected(self):
+        return self._player.backpack.treasure
     
     def update(self, char):
         self._danger = []
@@ -306,7 +323,7 @@ class Model:
                 self._move_player(char)
                 self._handle_enemies()
             elif char in 'hjke':
-                self.gamestate = BACKPACK_SHOW_MENU[char]
+                self.gamestate = self.BACKPACK_SHOW_MENU[char]
         else:
             if self._player.use_backpack(self.gamestate, char):
                 self._handle_enemies()

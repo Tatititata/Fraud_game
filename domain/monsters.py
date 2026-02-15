@@ -139,7 +139,8 @@ class Monster(Character):
                     path.append((y, x))
                 d += 2*dx 
 
-
+    def __repr__(self):
+        return repr({k: v for k, v in self.__dict__.items() if not k.startswith('_')})
 
 
 class Snake(Monster):

@@ -36,8 +36,6 @@ import copy
 
 class Backpack:
 
-
-
     def __init__(self):
         self.capacity = 9
         self.treasure = 0
@@ -48,6 +46,7 @@ class Backpack:
     #         return len(self.have[item])
 
     def __repr__(self):
+        return repr({k: v for k, v in self.__dict__.items() if not k.startswith('_')})
         return f'backpack: t={self.treasure}, w={len(self.have[WEAPON])}, f={len(self.have[FOOD])}, p={len(self.have[POTION])}, s={len(self.have[SCROLL])}'
 
     def place_item(self, item):
@@ -75,6 +74,7 @@ class Item:
 
         
     def __repr__(self):
+        return repr({k: v for k, v in self.__dict__.items() if not k.startswith('_')})
         l = sorted((k, v) for k, v in self.__dict__.items() if not k.startswith('_'))
         return str(l)
 
@@ -109,13 +109,13 @@ class Character(Entity):
             if target.health <= 0 and hasattr(self, 'backpack'):
                 self.backpack.treasure += randint(1, target.hostility + target.strength + target.dexterity + target.max_health)
                 self._nav.add_danger(f'You killed {target.id}')
+
+
         
 class Player(Character):
     def __init__(self):
         super().__init__(PLAYER)
         self.max_health = 30 # 0 = dead
-
-        self.step_count = 0
         self.backpack = Backpack()
         self._permanent_items = {}
 
@@ -190,7 +190,8 @@ class Player(Character):
             self._drop_weapon()
         self.current_weapon = item
 
- 
+    def __repr__(self):
+        return repr({k: v for k, v in self.__dict__.items() if not k.startswith('_')})
 #     + сокровища (имеют стоимость, накапливаются и влияют на итоговый рейтинг, 
 # можно получить только при победе над монстром);
 #   + еда (восстанавливает здоровье на некоторую величину);

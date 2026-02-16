@@ -27,7 +27,6 @@ class Monster(Character):
             path = self._get_path_to_player(player)
             if path:
                 self._nav.place_entity(path[0], self)
-                self._nav.add_danger(f'{self.id} sees you')
             else:
                 # sys.stdout.write(f'\033[{1 + global_counter()};{104}H{self.id} must attack player')
                 self.attack(player)

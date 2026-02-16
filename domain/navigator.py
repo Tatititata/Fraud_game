@@ -15,5 +15,3 @@ class Navigator:
     def place_weapon(self, pos, weapon):
         return self._model.place_weapon(pos, weapon)
     
-    def add_danger(self, s):
-        return self._model.add_danger(s)

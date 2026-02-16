@@ -41,14 +41,16 @@ class Render:
         self._out.flush()
 
 
-    def render(self, gamestate, entities:set, backpack, info=None):
-        if gamestate == GAMEOVER:
-            self.show_gameover_menu()
-            return
-        self._clear_backpack_menu()
+    def render(self, gamestate, entities:set, backpack):
+        if self._old_gamestate != gamestate:
+            self._clear_backpack_menu()
+            self._old_gamestate = gamestate
         if isinstance(backpack, set):
             self.restore_backpack = backpack - self.restore_backpack
             self._render_backpack(INFO_MENU_POS_Y + 2, INFO_MENU_POS_X + 18)
+            if gamestate == GAMEOVER:
+                self.show_gameover_menu()
+                return
         else:
             self._render_backpack_details(backpack)
         if gamestate == NORMAL:
@@ -62,8 +64,8 @@ class Render:
         elif gamestate == WEAPON:
             self._render_weapon_menu()
 
-        if info:
-            self._show_current_danger(info)
+        # if info:
+        #     self._show_current_danger(info)
         self._out.flush()
 
     def _show_current_danger(self, info):
@@ -122,8 +124,8 @@ class Render:
         for i in range(y, HEIGHT):
             self._out.write(f'\033[{SHIFT + i};{x+SHIFT}H\033[0K')
 
-    def _render_game(self, entities:dict):
-        for y, x, char in entities:
+    def _render_game(self, entities:set):
+        for (y, x), char in entities.items():
             self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H{self._symbols.get(char, char)}')
 
     def show_can_not_load_file_screen(self):

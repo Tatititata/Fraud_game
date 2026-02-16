@@ -108,8 +108,7 @@ class Character(Entity):
             # self._nav.add_danger(f'Damage - {damage}')
             if target.health <= 0 and hasattr(self, 'backpack'):
                 self.backpack.treasure += randint(1, target.hostility + target.strength + target.dexterity + target.max_health)
-                self._nav.add_danger(f'You killed {target.id}')
-
+               
 
         
 class Player(Character):

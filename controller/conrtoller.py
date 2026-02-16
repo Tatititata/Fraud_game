@@ -34,19 +34,18 @@ class Rouge:
     def _game_loop(self, ch):
         if ch == 'l':
             try: 
-                loader = Loader()
-                model = Model(loader.player, loader.data, loader.level) 
+                model = Model(Loader().data, None, 0) 
             except:
                 self._render.show_can_not_load_file_screen()
                 self._user_input.getchar()
                 return
         else:
-            model = Model(None, Generator().data, 0) #None = no player yet, 0 = level
+            model = Model(Generator().data, None, 0) #None = no player yet, 0 = level
         self._render.clear_game_field()
         self._render.show_game_menu()
         self._render.show_level(model.level + 1)
         self._render.show_records(self._records.data)
-        self._render.render(model.gamestate, model.render_data(), model.backpack(), model.info())
+        self._render.render(model.gamestate, model.render_data(), model.backpack())
         
 
         while model.gamestate: # >0
@@ -62,11 +61,11 @@ class Rouge:
                     ch = self._user_input.getchar()
                     return
 
-                model = Model(model.player, Generator().data, model.level + 1) 
+                model = Model(Generator().data, model.player, model.level + 1) 
                 self._render.clear_game_field()    
                 self._render.show_level(model.level + 1)
                 self._render.show_records(self._records.data)
-            self._render.render(model.gamestate, model.render_data(), model.backpack(), model.info())
+            self._render.render(model.gamestate, model.render_data(), model.backpack())
         else:
             self._records.add_new_record([model.treasures_collected(), model.level + 1])
         

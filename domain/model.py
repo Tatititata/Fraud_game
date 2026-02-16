@@ -12,43 +12,35 @@ class Model:
 
     BACKPACK_SHOW_MENU = {'j': FOOD, 'h': WEAPON, 'e': SCROLL, 'k':POTION}
 
-    def __init__(self, player, data, level):
-        self.level = level
-        self.passed = False
-        self.gamestate = NORMAL
-        self._nav = Navigator(self)
-        self._rooms = data[0]
-        self._corridors = data[1]
-        self._visited = [0] * ROOMS
+    def __init__(self, data, player, level):
+        if len(data) == 4:
+            self.level = level
+            self.passed = False
+            self.gamestate = NORMAL
+            self._nav = Navigator(self)
+            self._rooms = data[0]
+            self._corridors = data[1]
+            self._visited = [0] * ROOMS
 
-        self._matrix = None
-        self._create_matrix()
-        self._layout = {}
-        self._create_layout()
+            self._matrix = None
+            self._create_matrix()
+            self._layout = {}
+            self._create_layout()
 
-        self._player = player or Player()
-        self._place_player(data[2])
+            self._player = player or Player()
+            self._place_player(data[2])
 
-        self._monsters = set()
-        self._items = set()
-        self._danger = []
-        self._place_monsters(data[2])
-        self._place_items(data[3])
+            self._monsters = set()
+            self._items = set()
+            self._place_monsters(data[2])
+            self._place_items(data[3])
 
+            self._visible = set()
 
-        self._visible = set()
-        self._explored = set()
-        self._restores_data = set()
+            # with open('log.txt', 'w') as f:
+            #     for key in self._rooms:
+            #         f.write(f"{key}\n")
 
-        with open('log.txt', 'w') as f:
-            for key in self._rooms:
-                f.write(f"{key}\n")
-            for key in self._corridors:
-                f.write(f"{key}\n")
-            for key in self._monsters:
-                f.write(f"{key}\n")
-            f.write(f"{self._items}\n")
-            f.write(f"{self._player}\n")
 
     def _move_player(self, char):
         new_y, new_x = self._player.pos
@@ -215,6 +207,7 @@ class Model:
                 visible.add(pos)
                 pos = (pos[0] + dy, pos[1] + dx)
 
+
     def render_data(self):
         res = {}
         idx = self._matrix[self._player.pos][0] #the room player in
@@ -228,20 +221,21 @@ class Model:
             r = self._rooms[idx]
             visible.update(r.floor)
             visible.update(r.gate)
-            if not self._visited[idx]:
-                self._visited[idx] = 1
-                self._explored.update(self._rooms[idx].walls())
-                for pos in self._rooms[idx].walls():
-                    res[pos] = self._layout[pos]
           
         self._update_visible(visible)
 
         for pos in visible:
             res[pos] = self._layout.get(pos, FLOOR)
-            
+        
         self._visible -= visible
         for pos in self._visible:
             res[pos] = self._layout.get(pos, GROUND)
+        self._visible = visible
+
+        if idx < ROOMS and not self._visited[idx]:
+            self._visited[idx] = 1
+            for pos in self._rooms[idx].walls():
+                res[pos] = self._layout[pos]
 
         for m in self._monsters:
             if m.pos in visible:
@@ -252,10 +246,6 @@ class Model:
                 res[pos] = char
         res[self._player.pos] = self._player.id
 
-        self._visible = visible
-
-        res = {(y, x, char) for (y, x), char in res.items()}
-        res -= self._restores_data
         return res
 
     def place_entity(self, pos, e:Entity):
@@ -269,7 +259,7 @@ class Model:
         return value is not None and value[1] is None
     
     def backpack(self):
-        if self.gamestate == NORMAL:
+        if self.gamestate in (NORMAL, GAMEOVER):
             res = {(item, len(value)) for item, value in self._player.backpack.have.items()}
             res.update({
                 (CURRENT_WEAPON, self._player.current_weapon.power), 
@@ -298,11 +288,7 @@ class Model:
                 self._items.add((new_pos, weapon.id))
                 return
 
-    def add_danger(self, s):
-        self._danger.append(s)
-    
-    def info(self):
-        return self._danger
+
 
     def _handle_enemies(self):
         for e in self._monsters:
@@ -330,9 +316,3 @@ class Model:
             self.gamestate = NORMAL
         if self._player.health <= 0:
             self.gamestate = GAMEOVER
-        # sys.stdout.write(f'\033[{51};{1}H\033[2K{self._player.pos}')
-        # sys.stdout.write(f'\033[{52};{1}H\033[2K{self._items}')
-        # sys.stdout.write(f'\033[{53};{1}H\033[2K{self._monsters}')
-        # with open('log.txt', 'w') as f:
-        #     for key, value in sorted(self._matrix.items()):
-        #         f.write(f"{key}: {value}\n")

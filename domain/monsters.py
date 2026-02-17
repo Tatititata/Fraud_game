@@ -4,11 +4,12 @@ from .navigator import Navigator
 from random import randint
 from globals.globals import global_counter
 import sys
-class Monster(Character):
 
+
+class Monster(Character):
     def __init__(self, id, nav:Navigator, pos, r):
         super().__init__(id, nav, pos)
-        self.id = id
+        # self.id = id
         self.room = r
         self.hostility = 0
         self._patrol_moves = ((1, 0), (0, 1), (-1, 0), (0, -1))
@@ -141,12 +142,23 @@ class Monster(Character):
     def __repr__(self):
         return repr({k: v for k, v in self.__dict__.items() if not k.startswith('_')})
 
+    def to_dict(self):
+        return {
+        'id': self.id,
+        'pos': self.pos, 
+        'room': self.room,
+        'hostility': self.hostility,
+        'dexterity': self.dexterity, 
+        'strength': self.strength, 
+        'health': self.health
+        }
+    
 
 class Snake(Monster):
     def __init__(self, nav:Navigator, pos, r, level):
         super().__init__(SNAKE, nav, pos, r)
         self.health = self.max_health = 20 + level * 5
-        self.dexterity = 25 + level
+        self.dexterity= 25 + level
         self.strength = 8 + level
         self.hostility = 10
         self._patrol_moves = ((1, 1), (-1, 1), (1, -1), (-1, -1))
@@ -156,7 +168,7 @@ class Ogre(Monster):
     def __init__(self, nav:Navigator, pos, r, level):
         super().__init__(OGRE, nav, pos, r)
         self.health = self.max_health = 50 + level * 5
-        self.dexterity = 5 + level
+        self.dexterity= 5 + level
         self.strength = 24 + level
         self.hostility = 6
 
@@ -164,7 +176,7 @@ class Vampire(Monster):
     def __init__(self, nav:Navigator, pos, r, level):
         super().__init__(VAMPIRE, nav, pos, r)
         self.health = self.max_health = 25 + level * 5
-        self.dexterity = 16 + level
+        self.dexterity= 16 + level
         self.strength = 10 + level
         self.hostility = 8
 
@@ -172,7 +184,7 @@ class Ghost(Monster):
     def __init__(self, nav:Navigator, pos, r, level):
         super().__init__(GHOST, nav, pos, r)
         self.health = self.max_health = 15 + level * 5
-        self.dexterity = 18 + level
+        self.dexterity= 18 + level
         self.strength = 4 + level
         self.hostility = 4
 
@@ -180,7 +192,7 @@ class Zombie(Monster):
     def __init__(self, nav:Navigator, pos, r, level):
         super().__init__(ZOMBIE, nav, pos, r)
         self.health = self.max_health = 30 + level * 5
-        self.dexterity = 3 + level
+        self.dexterity= 3 + level
         self.strength = 8 + level
         self.hostility = 5
 

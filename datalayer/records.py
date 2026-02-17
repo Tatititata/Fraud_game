@@ -16,7 +16,7 @@ class Records:
             data = []
         data.append(new_data)
         with open('records.json', 'w') as file:
-            dump(data, file)
+            dump(data, file, indent=2)
         self._data.append(new_data)
         self._data.sort(reverse=True)
         self._data.pop()

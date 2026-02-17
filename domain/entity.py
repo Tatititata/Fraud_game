@@ -36,10 +36,17 @@ import copy
 
 class Backpack:
 
-    def __init__(self):
+    def __init__(self, data=None):
         self.capacity = 9
-        self.treasure = 0
-        self.have = dict((k, []) for k in ITEMS)
+        if not isinstance(data, dict):
+            self.treasure = 0
+            self.have = dict((k, []) for k in ITEMS)
+        else:
+            self._init_from_dict(data)
+
+    def _init_from_dict(self, data:dict):
+        self.treasure = data['treasure']
+        self.have = {k: v for k, v in data['have'].items()}
 
     # def size(self, item):
     #     if item in self.have:
@@ -55,27 +62,37 @@ class Backpack:
             return True
         return False
 
+    def to_dict(self):
+        d = {
+            'treasure': self.treasure, 
+            'have': {k: [i.to_dict()  for i in v] for k, v in self.have.items()}
+            }
+        return d
+
 class Item:
 
     def __init__(self, data, level=0):
         if isinstance(data, str):
-            self._init_new_item(id, level)
+            self._init_new_item(data, level)
         elif isinstance(data, dict):
-            self._init_from_dict(id, level)
+            self._init_from_dict(data, level)
         else:
             raise
 
     def _init_from_dict(self, data:dict):
-        for k, v in dict.items():
-            setattr(self, k, v)
+        if 'id' in data:
+            for k, v in data.items():
+                setattr(self, k, v)
+        else:
+            raise
 
     def _init_new_item(self, id, level=0):
         self.id = id  
         if id == WEAPON:
-            self.type = choice(['dagger', 'sword', 'axe'])
+            self.type = choice(['spear', 'sword', 'knife'])
             self.power = randint(1 + level // 3, 5 + level // 2)
         elif id == FOOD:
-            self.type = choice(['milk', 'meat', 'egg', 'water'])
+            self.type = choice(['bread', 'honey', 'steak', 'water'])
             self.power = randint(3, 8) + level // 2
         elif id == POTION: # tempopary
             self.type = choice(['strength', 'dexterity', 'max_health'])
@@ -85,26 +102,35 @@ class Item:
             self.type = choice(['strength', 'dexterity', 'max_health'])
             self.power = randint(1, 2) + level // 5
 
+
+    def to_dict(self):
+            d = {
+                'id': self.id
+            }
+            if hasattr(self, 'duration'):
+                d['duration'] = self.duration
+            if hasattr(self, 'power'):
+                d['power'] = self.power   
+            if hasattr(self, 'type'):
+                d['type'] = self.type
+            return d
         
     def __repr__(self):
+        return str(self.to_dict())
         return repr({k: v for k, v in self.__dict__.items() if not k.startswith('_')})
         l = sorted((k, v) for k, v in self.__dict__.items() if not k.startswith('_'))
         return str(l)
-
 
 class Entity:
     def __init__(self, id = None, pos=None):
         self.id = id
         self.pos = pos
 
-
-        
-
 class Character(Entity):
     def __init__(self, id = None, nav:Navigator=None, pos=None ):
         super().__init__(id, pos)
         self._nav = nav
-        self.dexterity = 10 # Ловкость (dexterity) влияет на шанс попадания: hit_chance = a.dex / (a.dex + d.dex).
+        self.dexterity= 10 # Ловкость (dexterity) влияет на шанс попадания: hit_chance = a.dex / (a.dex + d.dex).
         self.strength = 10 # Сила (strength) — базовый урон: damage = max(1, a.str - d.str // 3) ???
         self.health = 20
         self._free_hands = Item(WEAPON, 0)
@@ -112,7 +138,7 @@ class Character(Entity):
         self.current_weapon = self._free_hands
 
     def attack(self, target):
-        random_value = randint(1, self.dexterity + target.dexterity)
+        random_value = randint(1, self.dexterity+ target.dexterity)
         if random_value <= self.dexterity:
             # self._nav.add_danger(f'{self.id} with {self.health} health attacs {target.id}')
             damage = self.strength + self.current_weapon.power - target.strength
@@ -120,16 +146,40 @@ class Character(Entity):
             target.health -= damage
             # self._nav.add_danger(f'Damage - {damage}')
             if target.health <= 0 and hasattr(self, 'backpack'):
-                self.backpack.treasure += randint(1, target.hostility + target.strength + target.dexterity + target.max_health)
+                self.backpack.treasure += randint(1, target.hostility + target.strength + target.dexterity+ target.max_health)
                
 
         
 class Player(Character):
-    def __init__(self):
+    def __init__(self, data=None):
         super().__init__(PLAYER)
-        self.max_health = 30 # 0 = dead
-        self.backpack = Backpack()
-        self._permanent_items = {}
+        if not data:
+            self.max_health = 30 # 0 = dead
+            self.backpack = Backpack()
+            self._permanent_items = {}
+        else:
+            self._init_from_dict(data)
+
+    def _init_from_dict(self, data:dict):
+        for k, v in data.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
+            else:
+                raise
+
+    def to_dict(self):
+        d = {
+        'pos': self.pos, 
+        'dexterity': self.dexterity, 
+        'strength': self.strength, 
+        'health': self.health, 
+        '_free_hands': self._free_hands.to_dict(), 
+        'current_weapon': self.current_weapon.to_dict(), 
+        'max_health': 30, 
+        'backpack': self.backpack.to_dict(),
+        '_permanent_items': [[*k, v] for k, v in self._permanent_items.items()]
+    }
+        return d
 
     def get_item(self, item):
         return self.backpack.place_item(item)

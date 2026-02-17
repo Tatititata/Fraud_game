@@ -5,7 +5,7 @@ from core.render import Render
 from core.terminal import Terminal
 from core.input import InputHandler
 from datalayer.records import Records
-from datalayer.loader import Loader
+from datalayer.loader import Loader, Saver
 import sys
 
 
@@ -52,7 +52,11 @@ class Rouge:
             ch = self._user_input.getchar()
             if ch == 'q':
                 self._render.show_gameover_menu()
-                # FIX ME save to json
+                if model.gamestate:
+                    self._render.show_save_game_menu()
+                    ch = self._user_input.getchar()
+                    if ch == 's':
+                        Saver().save(model)
                 return
             model.update(ch)
             if model.passed:

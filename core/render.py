@@ -120,10 +120,10 @@ class Render:
         y = INFO_MENU_POS_Y + INFO_MENU_HEIGHT + 2
         x = 101
         for i, el in enumerate(backpack, 1):
-            self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H{i}. ')
-            el = sorted((attr, getattr(el, attr)) for attr in dir(el) if not attr.startswith('_') and not attr == 'id')
-            el = ', '.join(f'{k} - {v}' for k, v in el)
-            self._out.write(f'{el}')
+            self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
+            # el = sorted((attr, getattr(el, attr)) for attr in dir(el) if not attr.startswith('_') and not attr == 'id')
+            # el = ', '.join(f'{k} - {v}' for k, v in el.items())
+            self._out.write(f'{i}. {el}')
             y += 1
    
         self._backpack_menu_height = y - INFO_MENU_POS_Y - INFO_MENU_HEIGHT + 1
@@ -140,8 +140,16 @@ class Render:
             self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H{self._symbols.get(char, char)}')
 
     def show_can_not_load_file_screen(self):
+        self.clear_game_field()
         self._out.write(f'\033[3;3HCan not load file')
         self._out.flush()
+
+    def show_save_game_menu(self):
+        self.clear_game_field()
+        self._out.write(f'\033[6;3Hto save the game')
+        self._out.write(f'\033[7;3Hpress \'s\' key')
+        self._out.flush()
+
 
     def show_start_game_menu(self):
         self._out.write(f'\033[3;3Hto start new game press any key')
@@ -207,7 +215,7 @@ class Render:
         self._out.write('current weapon - ')
         y += 1
         self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
-        self._out.write('dexterity ------ ')
+        self._out.write('dexterity------ ')
         y += 1
         self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
         self._out.write('strength ------- ')

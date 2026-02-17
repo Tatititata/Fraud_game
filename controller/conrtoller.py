@@ -45,7 +45,7 @@ class Rouge:
         self._render.show_game_menu()
         self._render.show_level(model.level + 1)
         self._render.show_records(self._records.data)
-        self._render.render(model.gamestate, model.render_data(), model.backpack())
+        self._render.render_first_screen(model)
         
 
         while model.gamestate: # >0
@@ -65,7 +65,7 @@ class Rouge:
                 self._render.clear_game_field()    
                 self._render.show_level(model.level + 1)
                 self._render.show_records(self._records.data)
-            self._render.render(model.gamestate, model.render_data(), model.backpack())
+            self._render.render(model)
         else:
             self._records.add_new_record([model.treasures_collected(), model.level + 1])
         

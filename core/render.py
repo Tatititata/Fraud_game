@@ -40,8 +40,19 @@ class Render:
         self._out.write('\033[?25l')  # hide cursor
         self._out.flush()
 
+    def render_first_screen(self, model):
+        gamestate = model.gamestate
+        backpack = model.backpack
+        self._old_gamestate = gamestate
+        self.restore_backpack = backpack - self.restore_backpack
+        self._render_backpack(INFO_MENU_POS_Y + 2, INFO_MENU_POS_X + 18)
+        self._render_game(model.first_screen())
+        self._out.flush()
 
-    def render(self, gamestate, entities:set, backpack):
+    def render(self, model):
+        gamestate = model.gamestate
+        backpack = model.backpack
+        
         if self._old_gamestate != gamestate:
             self._clear_backpack_menu()
             self._old_gamestate = gamestate
@@ -54,7 +65,7 @@ class Render:
         else:
             self._render_backpack_details(backpack)
         if gamestate == NORMAL:
-            self._render_game(entities)
+            self._render_game(model.data_for_rendering())
         elif gamestate == FOOD:
             self._render_food_menu()
         elif gamestate == POTION:
@@ -68,12 +79,12 @@ class Render:
         #     self._show_current_danger(info)
         self._out.flush()
 
-    def _show_current_danger(self, info):
-        y, x = INFO_MENU_POS_Y + INFO_MENU_HEIGHT, INFO_MENU_POS_X
-        for i in info:
-            self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H{i}')
-            y += 1
-        self._backpack_menu_height = y - INFO_MENU_POS_Y - INFO_MENU_HEIGHT
+    # def _show_current_danger(self, info):
+    #     y, x = INFO_MENU_POS_Y + INFO_MENU_HEIGHT, INFO_MENU_POS_X
+    #     for i in info:
+    #         self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H{i}')
+    #         y += 1
+    #     self._backpack_menu_height = y - INFO_MENU_POS_Y - INFO_MENU_HEIGHT
 
     def show_game_menu(self):
         self._draw_rectangle(INFO_MENU_POS_Y, INFO_MENU_POS_X, INFO_MENU_HEIGHT, INFO_MENU_WIDTH)
@@ -124,8 +135,8 @@ class Render:
         for i in range(y, HEIGHT):
             self._out.write(f'\033[{SHIFT + i};{x+SHIFT}H\033[0K')
 
-    def _render_game(self, entities:set):
-        for (y, x), char in entities.items():
+    def _render_game(self, data_for_rendering:set):
+        for (y, x), char in data_for_rendering.items():
             self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H{self._symbols.get(char, char)}')
 
     def show_can_not_load_file_screen(self):

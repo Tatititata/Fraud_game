@@ -16,30 +16,33 @@ class Model:
         if len(data) == 4:
             self.level = level
             self.passed = False
-            self.gamestate = NORMAL
+            self._gamestate = NORMAL
             self._nav = Navigator(self)
             self._rooms = data[0]
             self._corridors = data[1]
-            self._visited = [0] * ROOMS
+            self._visited = [0] * (ROOMS)
 
             self._matrix = None
-            self._create_matrix()
             self._layout = {}
-            self._create_layout()
-
             self._player = player or Player()
-            self._place_player(data[2])
-
             self._monsters = set()
             self._items = set()
+            self._visible = set()
+            self._explored = set()
+
+            self._create_matrix()
+            self._create_layout()
+            self._place_player(data[2])
             self._place_monsters(data[2])
             self._place_items(data[3])
 
-            self._visible = set()
-
             # with open('log.txt', 'w') as f:
-            #     for key in self._rooms:
-            #         f.write(f"{key}\n")
+            #     f.write(f'items\n{self._items}\n')
+            #     f.write(f'monsters\n{self._monsters}')
+            #     f.write(f'visible\n{self._visible}\n')
+            #     f.write(f'visited\n{self._visited}\n')
+            #     f.write(f'explored\n{self._explored}\n')
+            #     f.write(f'backpack\n{self._player.backpack}\n')
 
 
     def _move_player(self, char):
@@ -72,11 +75,11 @@ class Model:
                     self._matrix[pos][1] = self._player
                     self._matrix[self._player.pos][1] = None
                     self._player.pos = pos
-                    value = (pos, value.id)
+                    value = (pos, value)
                     self._items.discard(value)
 
     def _create_matrix(self):
-        self._matrix = {pos: [ROOMS + i, None] for i, c in enumerate(self._corridors) for pos in c.path}
+        self._matrix = {pos: [ROOMS + i, None] for i, c in enumerate(self._corridors) for pos in c.walls}
         for i, r in enumerate(self._rooms):
             for floor in r.floor:
                 self._matrix[floor] = [i, None]
@@ -107,35 +110,35 @@ class Model:
 
     def _place_corridors(self):
         for corridor in self._corridors:
-            for (y, x) in corridor.path:
-                if (y - 1, x) in corridor.path:
-                    if (y + 1, x) in corridor.path:
-                        if (y, x + 1) in corridor.path: 
-                            if (y, x - 1) in corridor.path: 
+            for (y, x) in corridor.walls:
+                if (y - 1, x) in corridor.walls:
+                    if (y + 1, x) in corridor.walls:
+                        if (y, x + 1) in corridor.walls: 
+                            if (y, x - 1) in corridor.walls: 
                                 self._layout[(y, x)] = '╋' #1
                             else:
                                 self._layout[(y, x)] = '┣'#2
-                        elif (y, x - 1)  in corridor.path: 
+                        elif (y, x - 1)  in corridor.walls: 
                             self._layout[(y, x)] = '┫'
                         else:
                             self._layout[(y, x)] = '┃'
                     else:
-                        if (y, x + 1) in corridor.path: 
-                            if (y, x - 1) in corridor.path: 
+                        if (y, x + 1) in corridor.walls: 
+                            if (y, x - 1) in corridor.walls: 
                                 self._layout[(y, x)] = '┻'
                             else:
                                 self._layout[(y, x)] = '┗'
-                        elif (y, x - 1) in corridor.path: 
+                        elif (y, x - 1) in corridor.walls: 
                             self._layout[(y, x)] = '┛'
                         else:
                             self._layout[(y, x)] = '┃'
-                elif (y + 1, x) in corridor.path:
-                        if (y, x + 1) in corridor.path: 
-                            if (y, x - 1) in corridor.path: 
+                elif (y + 1, x) in corridor.walls:
+                        if (y, x + 1) in corridor.walls: 
+                            if (y, x - 1) in corridor.walls: 
                                 self._layout[(y, x)] = '┳'
                             else:
                                 self._layout[(y, x)] = '┏'
-                        elif (y, x - 1) in corridor.path: 
+                        elif (y, x - 1) in corridor.walls: 
                             self._layout[(y, x)] = '┓'
                         else:
                             self._layout[(y, x)] = '┃'
@@ -168,21 +171,23 @@ class Model:
         
         positions = list(self._matrix)
         for item, quantity in items.items():
-            for i in range(quantity):
+            for _ in range(quantity):
                 pos = choice(positions)
                 while self._matrix[pos][1] is not None:
                     pos = choice(positions)
-                self._matrix[pos][1] = Item(item, self.level)
-                self._items.add((pos, item))
+                it = Item(item, self.level)
+                self._matrix[pos][1] = it
+                self._items.add((pos, it))
         positions = list(self._rooms[end].floor)
         pos = choice(positions)
         while self._matrix[pos][1] is not None:
             pos = choice(positions)
-        self._matrix[pos][1] = Item(EXIT)
-        self._items.add((pos, EXIT))
+        it = Item(EXIT)
+        self._matrix[pos][1] = it
+        self._items.add((pos, it))
         
     def _place_monsters(self, start):
-        # return
+        return
         rooms = {start,}
         monsters = [Zombie, Snake, Ogre, Vampire, Ghost]
         for i in range(self.level):
@@ -199,16 +204,27 @@ class Model:
             self._matrix[pos][1] = monster
             self._monsters.add(monster)
 
+    def _handle_enemies(self):
+        for e in self._monsters:
+            e.move(self._player)
+        self._player.update()
+
     def _update_visible(self, visible):
         y, x = self._player.pos
         for dy, dx in ((1, 0), (0, 1), (-1, 0), (0, -1)):
             pos = (y + dy, x + dx)
-            while pos in self._matrix:
+            value = self._matrix.get(pos)
+            while value:
                 visible.add(pos)
+                if value[0] >= ROOMS:
+                    self._explored.add(pos)
                 pos = (pos[0] + dy, pos[1] + dx)
+                value = self._matrix.get(pos)
 
+    def first_screen(self):
+        return self.data_for_rendering()
 
-    def render_data(self):
+    def data_for_rendering(self):
         res = {}
         idx = self._matrix[self._player.pos][0] #the room player in
         visible = set()
@@ -219,6 +235,10 @@ class Model:
                     idx = i
         if idx < ROOMS:
             r = self._rooms[idx]
+            if not self._visited[idx]:
+                self._visited[idx] = 1
+                for pos in r.walls:
+                    res[pos] = self._layout[pos]
             visible.update(r.floor)
             visible.update(r.gate)
           
@@ -232,20 +252,24 @@ class Model:
             res[pos] = self._layout.get(pos, GROUND)
         self._visible = visible
 
-        if idx < ROOMS and not self._visited[idx]:
-            self._visited[idx] = 1
-            for pos in self._rooms[idx].walls():
-                res[pos] = self._layout[pos]
-
         for m in self._monsters:
             if m.pos in visible:
                 res[m.pos] = m.id
 
-        for pos, char in self._items:
+        for pos, i in self._items:
             if pos in visible:
-                res[pos] = char
-        res[self._player.pos] = self._player.id
+                res[pos] = i.id
 
+        res[self._player.pos] = self._player.id
+        with open('log.txt', 'w') as f:
+                f.write(f'rooms\n{self._rooms}\n')
+                f.write(f'corrs\n{self._corridors}\n')
+                f.write(f'items\n{self._items}\n')
+                f.write(f'monsters\n{self._monsters}\n')
+                # f.write(f'visible\n{self._visible}\n')
+                f.write(f'visited\n{self._visited}\n')
+                f.write(f'explored\n{self._explored}\n')
+                f.write(f'backpack\n{self._player.backpack}\n')
         return res
 
     def place_entity(self, pos, e:Entity):
@@ -258,6 +282,7 @@ class Model:
         value = self._matrix.get(pos)
         return value is not None and value[1] is None
     
+    @property
     def backpack(self):
         if self.gamestate in (NORMAL, GAMEOVER):
             res = {(item, len(value)) for item, value in self._player.backpack.have.items()}
@@ -288,31 +313,28 @@ class Model:
                 self._items.add((new_pos, weapon.id))
                 return
 
-
-
-    def _handle_enemies(self):
-        for e in self._monsters:
-            e.move(self._player)
-        self._player.update()
-
     @property
     def player(self):
         return self._player
 
+    @property
+    def gamestate(self):
+        return self._gamestate
+    
     def treasures_collected(self):
         return self._player.backpack.treasure
     
     def update(self, char):
         self._danger = []
-        if self.gamestate == NORMAL:
+        if self._gamestate == NORMAL:
             if char in 'wasd':
                 self._move_player(char)
                 self._handle_enemies()
             elif char in 'hjke':
-                self.gamestate = self.BACKPACK_SHOW_MENU[char]
+                self._gamestate = self.BACKPACK_SHOW_MENU[char]
         else:
-            if self._player.use_backpack(self.gamestate, char):
+            if self._player.use_backpack(self._gamestate, char):
                 self._handle_enemies()
-            self.gamestate = NORMAL
+            self._gamestate = NORMAL
         if self._player.health <= 0:
-            self.gamestate = GAMEOVER
+            self._gamestate = GAMEOVER

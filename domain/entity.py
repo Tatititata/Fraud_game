@@ -56,7 +56,20 @@ class Backpack:
         return False
 
 class Item:
-    def __init__(self, id, level=0):
+
+    def __init__(self, data, level=0):
+        if isinstance(data, str):
+            self._init_new_item(id, level)
+        elif isinstance(data, dict):
+            self._init_from_dict(id, level)
+        else:
+            raise
+
+    def _init_from_dict(self, data:dict):
+        for k, v in dict.items():
+            setattr(self, k, v)
+
+    def _init_new_item(self, id, level=0):
         self.id = id  
         if id == WEAPON:
             self.type = choice(['dagger', 'sword', 'axe'])

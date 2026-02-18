@@ -5,6 +5,7 @@ GHOST = 'G'
 OGRE = 'O'
 SNAKE = 'S'
 
+MONSTERS = (ZOMBIE, VAMPIRE, GHOST, OGRE, SNAKE)
 
 # gamestate
 GAMEOVER = 0

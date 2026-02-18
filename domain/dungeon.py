@@ -18,7 +18,7 @@ class Room:
         elif isinstance(data, dict):
             self._init_from_dict(data)
         else:
-            raise
+            raise TypeError(f"{self.__class__.__name__}._init_")
 
     # def _init_from_dict(self, data:dict):
     #     with open('loader.txt', 'a') as f:
@@ -41,7 +41,7 @@ class Room:
         
         for k, v in data.items():
             if not hasattr(self, k):
-                raise AttributeError(f"{k} not in Room")
+                raise AttributeError(f"{self.__class__.__name__}._init_from_dict")
             if k == 'id':
                 setattr(self, k, v)
             elif k in SINGLE_COORDS:
@@ -124,12 +124,12 @@ class Corridor:
         elif isinstance(data, dict):
             self._init_from_dict(data)
         else:
-            raise
+            raise TypeError(f"{self.__class__.__name__}._init_")
 
     def _init_from_dict(self, data:dict):
         for k, v in data.items():
             if not hasattr(self, k):
-                raise AttributeError(f"{k} not in Room")
+                raise AttributeError(f"{self.__class__.__name__}._init_from_dict")
             if k == '_connecting':
                 setattr(self, k, set(v))
             elif k == '_path':

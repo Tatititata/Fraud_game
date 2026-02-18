@@ -38,23 +38,19 @@ class Backpack:
 
     def __init__(self, data=None):
         self.capacity = 9
-        if not isinstance(data, dict):
-            self.treasure = 0
-            self.have = dict((k, []) for k in ITEMS)
-        else:
+        self.treasure = 0
+        self.have = dict((k, []) for k in ITEMS)
+        if isinstance(data, dict):
             self._init_from_dict(data)
 
     def _init_from_dict(self, data:dict):
         self.treasure = data['treasure']
-        self.have = {k: v for k, v in data['have'].items()}
-
-    # def size(self, item):
-    #     if item in self.have:
-    #         return len(self.have[item])
+        for k, v in data['have'].items():
+            for i in v:
+                self.have[k].append(Item(i))
 
     def __repr__(self):
-        return repr({k: v for k, v in self.__dict__.items() if not k.startswith('_')})
-        return f'backpack: t={self.treasure}, w={len(self.have[WEAPON])}, f={len(self.have[FOOD])}, p={len(self.have[POTION])}, s={len(self.have[SCROLL])}'
+        return str(self.to_dict())
 
     def place_item(self, item):
         if item.id in self.have and len(self.have[item.id]) < self.capacity:
@@ -63,28 +59,23 @@ class Backpack:
         return False
 
     def to_dict(self):
-        d = {
-            'treasure': self.treasure, 
-            'have': {k: [i.to_dict()  for i in v] for k, v in self.have.items()}
-            }
-        return d
+        return {'treasure': self.treasure, 'have': {k: [i.to_dict() for i in v] for k, v in self.have.items()}}
 
 class Item:
-
     def __init__(self, data, level=0):
         if isinstance(data, str):
             self._init_new_item(data, level)
         elif isinstance(data, dict):
-            self._init_from_dict(data, level)
+            self._init_from_dict(data)
         else:
-            raise
+            raise TypeError(f"{self.__class__.__name__}._init_ {type(data)}")
 
     def _init_from_dict(self, data:dict):
         if 'id' in data:
             for k, v in data.items():
                 setattr(self, k, v)
         else:
-            raise
+            raise AttributeError(f"{self.__class__.__name__}._init_from_dict")
 
     def _init_new_item(self, id, level=0):
         self.id = id  
@@ -102,29 +93,28 @@ class Item:
             self.type = choice(['strength', 'dexterity', 'max_health'])
             self.power = randint(1, 2) + level // 5
 
-
     def to_dict(self):
-            d = {
-                'id': self.id
-            }
-            if hasattr(self, 'duration'):
-                d['duration'] = self.duration
-            if hasattr(self, 'power'):
-                d['power'] = self.power   
-            if hasattr(self, 'type'):
-                d['type'] = self.type
-            return d
+        return {k: v for k, v in self.__dict__.items() if not k.startswith('_')}
         
     def __repr__(self):
         return str(self.to_dict())
-        return repr({k: v for k, v in self.__dict__.items() if not k.startswith('_')})
-        l = sorted((k, v) for k, v in self.__dict__.items() if not k.startswith('_'))
-        return str(l)
 
 class Entity:
     def __init__(self, id = None, pos=None):
         self.id = id
         self.pos = pos
+
+    @property
+    def pos(self):
+        return self._pos
+    
+    @pos.setter
+    def pos(self, pos):
+        if isinstance(pos, list):
+            self._pos = tuple(pos)
+        else:
+            self._pos = pos
+
 
 class Character(Entity):
     def __init__(self, id = None, nav:Navigator=None, pos=None ):
@@ -153,19 +143,24 @@ class Character(Entity):
 class Player(Character):
     def __init__(self, data=None):
         super().__init__(PLAYER)
-        if not data:
-            self.max_health = 30 # 0 = dead
+        self.max_health = 30
+        self.backpack = None
+        self._permanent_items = {}
+        if data is None:
             self.backpack = Backpack()
-            self._permanent_items = {}
         else:
             self._init_from_dict(data)
 
     def _init_from_dict(self, data:dict):
         for k, v in data.items():
             if hasattr(self, k):
-                setattr(self, k, v)
+                if not isinstance(k, dict):
+                    setattr(self, k, v)
             else:
-                raise
+                raise AttributeError(f"{self.__class__.__name__}._init_from_dict {k}")
+        self.backpack = Backpack(data['backpack'])
+        self.current_weapon = Item(data['current_weapon'])
+        self._permanent_items = {(i, j):k for i, j, k in data['_permanent_items']}
 
     def to_dict(self):
         d = {
@@ -173,7 +168,6 @@ class Player(Character):
         'dexterity': self.dexterity, 
         'strength': self.strength, 
         'health': self.health, 
-        '_free_hands': self._free_hands.to_dict(), 
         'current_weapon': self.current_weapon.to_dict(), 
         'max_health': 30, 
         'backpack': self.backpack.to_dict(),
@@ -254,6 +248,7 @@ class Player(Character):
 
     def __repr__(self):
         return repr({k: v for k, v in self.__dict__.items() if not k.startswith('_')})
+    
 #     + сокровища (имеют стоимость, накапливаются и влияют на итоговый рейтинг, 
 # можно получить только при победе над монстром);
 #   + еда (восстанавливает здоровье на некоторую величину);

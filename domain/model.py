@@ -12,10 +12,10 @@ import sys
 class Model:
 
     BACKPACK_SHOW_MENU = {'j': FOOD, 'h': WEAPON, 'e': SCROLL, 'k':POTION}
+    MONSTERS_DICT = dict(zip(MONSTERS, (Zombie, Vampire, Ghost, Ogre , Snake)))
 
     def __init__(self, data, player=None, level=0):
-        # with open('init_log.txt', 'w') as f:
-        #     f.write(f'{data}\n')
+
         self.passed = False
         self._gamestate = NORMAL
         self._nav = Navigator(self)
@@ -28,42 +28,34 @@ class Model:
         elif isinstance(data, tuple):
             self._load_from_tuple(data, player, level)
         
-
     def _load_from_dict(self, data:dict):
-        with open('loader.txt', 'a') as f:
-            f.write(f'\nmodel\n{isinstance(data, dict)}\n')
-            self.level = data['level']
-            f.write(f'data[level] ={data['level']}\n')
-        self._entities_from_dict(data)
-        self._visited = [i for i in data['visited']]
-        self._explored = {i for i in data['explored']}
+        self.level = data['level']
+        self._rooms = [Room(r) for r in data['rooms']]
+        self._corridors = [Corridor(c) for c in data['corridors']]
         self._create_matrix()
         self._create_layout()
-        for m in self._monsters:
-            self._matrix[m.pos] = m
-        for pos, i in self._items:
-            self._matrix[pos] = i
-        self._place_player()
+        self._monsters_from_dict(data['monsters'])
+        self._items_from_dict(data['items'])
+        self._player = Player(data['player'])
+        self._visited = [i for i in data['visited']]
+        self._explored = {tuple(i) for i in data['explored']}
 
-    def _entities_from_dict(self, data:dict):
-        with open('loader.txt', 'a') as f:
-            for r in data['rooms']:
-                f.write(f'{r}\n')
-        self._rooms = [Room(r) for r in data['rooms']]
-        with open('loader.txt', 'a') as f:
-            f.write(f'self._rooms = {self._rooms}\n')
-            for r in data['corridors']:
-                f.write(f'{r}\n')
-        self._corridors = [Corridor(c) for c in data['corridors']]
-        with open('loader.txt', 'a') as f:
-            f.write(f'self._corridors = {self._corridors}\n')
-            f.write(f'player = {data['player']}\n')
-            f.write(f'monsters = {data['monsters']}\n')
-            f.write(f'items = {data['items']}\n')
-        self._player = Player(data['items'])
-        self._monsters = [Monster(m) for m in data['monsters']]
-        self._items = [Item(i) for i in data['items']]
+    def _monsters_from_dict(self, data:list):
+        self._monsters = set()
+        for m in data:
+            monster = self.MONSTERS_DICT[m['id']](self._nav)
+            monster.set_features(m)
+            self._monsters.add(monster)
+            self._matrix[monster.pos][1] = monster
 
+    def _items_from_dict(self, data:list):
+        self._items = set()
+        for d in data:
+            y, x, item_dict = d
+            pos = (y, x)
+            item = Item(item_dict)
+            self._items.add(((pos), item))
+            self._matrix[pos][1] = item        
 
     def _load_from_tuple(self, data, player, level):
         self.level = level
@@ -87,7 +79,6 @@ class Model:
         #     f.write(f'visited\n{self._visited}\n')
         #     f.write(f'explored\n{self._explored}\n')
         #     f.write(f'backpack\n{self._player.backpack}\n')
-
 
     def _move_player(self, char):
         new_y, new_x = self._player.pos
@@ -189,9 +180,8 @@ class Model:
                 else:
                     self._layout[(y, x)] = '━'
 
-    def _place_player(self, start=None):
-        if start is not None:
-            self._player.pos = self._get_pos(start)
+    def _place_player(self, start):
+        self._player.pos = self._get_pos(start)
         self._matrix[self._player.pos][1] = self._player
         self._player._nav = self._nav
         # with open('log.txt', 'w') as f:
@@ -234,7 +224,7 @@ class Model:
     def _place_monsters(self, start):
         # return
         rooms = {start,}
-        monsters = [Zombie, Snake, Ogre, Vampire, Ghost]
+        monsters = list(MONSTERS)
         for i in range(self.level):
             monsters.append(choice(monsters))
         for m in monsters:
@@ -245,7 +235,7 @@ class Model:
             if len(rooms) == ROOMS:
                 rooms = {start,}
             pos = self._get_pos(r)
-            monster = m(self._nav, pos, r, self.level)
+            monster = self.MONSTERS_DICT[m](self._nav, pos, r, self.level)
             self._matrix[pos][1] = monster
             self._monsters.add(monster)
 
@@ -267,7 +257,13 @@ class Model:
                 value = self._matrix.get(pos)
 
     def first_screen(self):
-        return self.data_for_rendering()
+        res = {pos: self._layout.get(pos, GROUND) for pos in self._explored}
+        for i in range(ROOMS):
+            if self._visited[i]:
+                for pos in self._rooms[i].walls:
+                    res[pos] = self._layout.get(pos, GROUND)
+        res.update(self.data_for_rendering())
+        return res
 
     def data_for_rendering(self):
         res = {}
@@ -342,6 +338,9 @@ class Model:
             return res
         res = []
         for d in self._player.backpack.have.get(self.gamestate):
+            with open('log.txt', 'a') as f:
+                f.write(f'{d.__class__.__name__}\n')
+                f.write(f'{d}\n')
             d = sorted(d.to_dict().items(), key=lambda x: len(x[0]), reverse=True)
             d = ', '.join(f'{k}: {v}' for k, v in d if k != 'id')
             res.append(d)

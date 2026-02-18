@@ -135,23 +135,26 @@ class Render:
         for i in range(y, HEIGHT):
             self._out.write(f'\033[{SHIFT + i};{x+SHIFT}H\033[0K')
 
-    def _render_game(self, data_for_rendering:set):
+    def _render_game(self, data_for_rendering:dict):
         for (y, x), char in data_for_rendering.items():
             self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H{self._symbols.get(char, char)}')
 
-    def show_can_not_load_file_screen(self):
+    def show_can_not_load_file_screen(self, e:str):
         self.clear_game_field()
         self._out.write(f'\033[3;3HCan not load file')
+        self._out.write(f'\033[4;3H{e}')
         self._out.flush()
 
     def show_save_game_menu(self):
         self.clear_game_field()
+        self._clear_backpack_menu()
         self._out.write(f'\033[6;3Hto save the game')
         self._out.write(f'\033[7;3Hpress \'s\' key')
         self._out.flush()
 
 
     def show_start_game_menu(self):
+        self.clear_game_field()
         self._out.write(f'\033[3;3Hto start new game press any key')
         self._out.write(f'\033[4;3Hto quit press q')
         self._out.flush()

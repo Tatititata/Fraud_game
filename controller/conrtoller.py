@@ -35,8 +35,8 @@ class Rouge:
         if ch == 'l':
             try: 
                 model = Model(Loader().data, None, 0) 
-            except:
-                self._render.show_can_not_load_file_screen()
+            except Exception as e:
+                self._render.show_can_not_load_file_screen(str(e)) 
                 self._user_input.getchar()
                 return
         else:

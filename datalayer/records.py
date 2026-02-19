@@ -1,26 +1,37 @@
 from json import dump, load
 class Records:
     def __init__(self, size):
-        self._data = None
-        try:
-            with open('records.json') as file:
-                self._data = sorted((data for data in load(file) if all(isinstance(d, int) and d >= 0 for d in data)), reverse=True)[:size]
-        except:
-            self._data = []
+        self._file = 'records.json'
+        self._size = size
 
-    def add_new_record(self, new_data):
+    def add_new_record(self, model):
         try:
-            with open('records.json') as file:
+            with open(self._file) as file:
                 data = load(file)
         except:
             data = []
-        data.append(new_data)
-        with open('records.json', 'w') as file:
+        data.append(model.stats)
+        with open(self._file, 'w') as file:
             dump(data, file, indent=2)
-        self._data.append(new_data)
-        self._data.sort(reverse=True)
-        self._data.pop()
 
     @property
     def data(self):
-        return self._data
+        try:
+            with open(self._file) as file:
+                data = sorted(load(file), key=lambda x: x['treasure'], reverse=True)[:self._size]
+                return [(d['treasure'], d['level_reached']) for d in data]
+        except Exception as e:
+            with open('log.txt', 'a') as f:
+                f.write(f'Record can not load data {e}\n')
+            return []
+
+    @property
+    def stats(self):
+        try:
+            with open(self._file) as file:
+                data = sorted(load(file), key=lambda x: x['treasure'], reverse=True)[:self._size]
+            with open(self._file, 'w') as file:
+                dump(data, file, indent=2)
+                return data
+        except:
+            return []

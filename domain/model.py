@@ -14,7 +14,7 @@ class Model:
     BACKPACK_SHOW_MENU = {'j': FOOD, 'h': WEAPON, 'e': SCROLL, 'k':POTION}
     MONSTERS_DICT = dict(zip(MONSTERS, (Zombie, Vampire, Ghost, Ogre , Snake)))
 
-    def __init__(self, data, player=None, level=0):
+    def __init__(self, data, player=None, statistics=None):
 
         self.passed = False
         self._gamestate = NORMAL
@@ -26,20 +26,24 @@ class Model:
         if isinstance(data, dict):
             self._load_from_dict(data)
         elif isinstance(data, tuple):
-            self._load_from_tuple(data, player, level)
-        
+            self._load_from_tuple(data, player, statistics)
+        else:
+            raise AttributeError(f"{self.__class__.__name__}._init_")
+
     def _load_from_dict(self, data:dict):
-        self.level = data['level']
         self._rooms = [Room(r) for r in data['rooms']]
         self._corridors = [Corridor(c) for c in data['corridors']]
         self._create_matrix()
         self._create_layout()
         self._monsters_from_dict(data['monsters'])
         self._items_from_dict(data['items'])
-        self._player = Player(data['player'])
+        self._player = Player(data['player'], self._nav)
         self._visited = [i for i in data['visited']]
         self._explored = {tuple(i) for i in data['explored']}
-
+        self._statistics = {k: v for k, v in data['statistics'].items()}
+        with open('log.txt', 'a') as f:
+            f.write(f'self._statistics __init__ {self._statistics}\n')
+        
     def _monsters_from_dict(self, data:list):
         self._monsters = set()
         for m in data:
@@ -57,8 +61,12 @@ class Model:
             self._items.add(((pos), item))
             self._matrix[pos][1] = item        
 
-    def _load_from_tuple(self, data, player, level):
-        self.level = level
+    def _load_from_tuple(self, data, player, statistics):
+        if not statistics:
+            self._statistics = {k: 0 for k in STATISTICS}
+            self._statistics['level_reached'] = 1
+        else:
+            self._statistics = {k: v for k, v in statistics.items()}
         self._rooms = data[0]
         self._corridors = data[1]
         self._visited = [0] * (ROOMS)
@@ -71,6 +79,7 @@ class Model:
         self._place_monsters(data[2])
         self._place_items(data[3])
         self._place_player(data[2])
+        
 
         # with open('log.txt', 'w') as f:
         #     f.write(f'items\n{self._items}\n')
@@ -98,13 +107,17 @@ class Model:
                 self._matrix[pos][1] = self._player
                 self._matrix[self._player.pos][1] = None
                 self._player.pos = pos
+                self._statistics["cells_moved"] += 1 
             elif value.id == EXIT:
                 self.passed = True
+                self._statistics['level_reached'] += 1
             elif isinstance(value, Monster):
                 self._player.attack(value)
                 if value.health <= 0:
                     self._monsters.discard(value)
                     self._matrix[value.pos][1] = None
+                    self._statistics["monsters_killed"] += 1
+                    self._statistics["treasure"] += value.drop_treasure()
             else:
                 if self._player.get_item(value):
                     self._matrix[pos][1] = self._player
@@ -224,8 +237,8 @@ class Model:
     def _place_monsters(self, start):
         # return
         rooms = {start,}
-        monsters = list(MONSTERS)
-        for i in range(self.level):
+        monsters = list(MONSTERS)[:2]
+        for i in range(self.level - 1):
             monsters.append(choice(monsters))
         for m in monsters:
             r = randint(0, ROOMS - 1)
@@ -256,15 +269,17 @@ class Model:
                 pos = (pos[0] + dy, pos[1] + dx)
                 value = self._matrix.get(pos)
 
+    @property
     def first_screen(self):
         res = {pos: self._layout.get(pos, GROUND) for pos in self._explored}
         for i in range(ROOMS):
             if self._visited[i]:
                 for pos in self._rooms[i].walls:
                     res[pos] = self._layout.get(pos, GROUND)
-        res.update(self.data_for_rendering())
+        res.update(self.data_for_rendering)
         return res
 
+    @property
     def data_for_rendering(self):
         res = {}
         idx = self._matrix[self._player.pos][0] #the room player in
@@ -333,14 +348,14 @@ class Model:
                 (STRENGTH, self._player.strength), 
                 (HEALTH, self._player.health), 
                 (MAX_HEALTH, self._player.max_health),
-                (TREASURE, self._player.backpack.treasure), 
+                (TREASURE, self._statistics['treasure']), 
                 })
             return res
         res = []
         for d in self._player.backpack.have.get(self.gamestate):
-            with open('log.txt', 'a') as f:
-                f.write(f'{d.__class__.__name__}\n')
-                f.write(f'{d}\n')
+            # with open('log.txt', 'a') as f:
+            #     f.write(f'{d.__class__.__name__}\n')
+            #     f.write(f'{d}\n')
             d = sorted(d.to_dict().items(), key=lambda x: len(x[0]), reverse=True)
             d = ', '.join(f'{k}: {v}' for k, v in d if k != 'id')
             res.append(d)
@@ -358,7 +373,7 @@ class Model:
             new_pos = (pos[0] + y, pos[1] + x)
             if self.walkable(new_pos):
                 self._matrix[new_pos][1] = weapon
-                self._items.add((new_pos, weapon.id))
+                self._items.add((new_pos, weapon))
                 return
 
     @property
@@ -369,9 +384,17 @@ class Model:
     def gamestate(self):
         return self._gamestate
     
-    def treasures_collected(self):
-        return self._player.backpack.treasure
-    
+    @property
+    def level(self):
+        return self._statistics['level_reached']
+
+    @property
+    def stats(self):
+        return self._statistics
+
+    def add_statistics(self, key:str, value:int=1):
+        self._statistics[key] += value
+
     def update(self, char):
         self._danger = []
         if self._gamestate == NORMAL:
@@ -394,7 +417,6 @@ class Model:
 
     def data_for_saving(self):
         data = {}
-        data['level'] = self.level
         data['visited'] = self._visited
         data['explored'] = [i for i in self._explored]
         data['player'] = self._player.to_dict()
@@ -402,4 +424,5 @@ class Model:
         data['items'] = [[*pos, r.to_dict() ] for pos, r in self._items]
         data['rooms'] = [r.to_dict() for r in self._rooms ]
         data['corridors'] = [r.to_dict() for r in self._corridors ]
+        data['statistics'] = self._statistics
         return data

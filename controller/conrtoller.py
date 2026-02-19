@@ -6,6 +6,7 @@ from core.terminal import Terminal
 from core.input import InputHandler
 from datalayer.records import Records
 from datalayer.loader import Loader, Saver
+from domain.adapter import Adapter
 import sys
 
 
@@ -14,13 +15,14 @@ class Rouge:
     def __init__(self):
         self._render = None
         self._user_input = None
-        self._records = None
+        self._rec = None
+        self._ad = None
 
     def run(self):
         with Terminal() as term:
             self._render = Render(term.stdout)
             self._user_input = InputHandler(term.fd)
-            self._records = Records(self._render.menu_height)
+            self._rec = Records(self._render.menu_height)
             self._start_game()
 
     def _start_game(self):
@@ -32,50 +34,42 @@ class Rouge:
             self._game_loop(ch)
 
     def _game_loop(self, ch):
+        model = None
         if ch == 'l':
             try: 
-                model = Model(Loader().data, None, 0) 
+                model = Model(Loader().data, None, None) 
             except Exception as e:
-                self._render.show_can_not_load_file_screen(str(e)) 
+                self._render.show_can_not_load_game_screen() 
                 self._user_input.getchar()
-                return
-        else:
-            model = Model(Generator().data, None, 0) #None = no player yet, 0 = level
+        model = model or Model(Generator().data, None, None) #None = no player yet, None = no statistic
+        adapter = Adapter()
         self._render.clear_game_field()
         self._render.show_game_menu()
-        self._render.show_level(model.level + 1)
-        self._render.show_records(self._records.data)
+        self._render.show_level(model.level)
+        self._render.show_records(self._rec.data)
         self._render.render_first_screen(model)
-        
-
         while model.gamestate: # >0
             ch = self._user_input.getchar()
             if ch == 'q':
                 self._render.show_gameover_menu()
-                if model.gamestate:
-                    self._render.show_save_game_menu()
-                    ch = self._user_input.getchar()
-                    if ch == 's':
-                        Saver().save(model)
-                return
+                return Saver().save(model)
             model.update(ch)
             if model.passed:
                 if model.level >= 20:
+                    Saver().remove_saved_model()
                     self._render.show_win_screen()
-                    ch = self._user_input.getchar()
-                    return
-
-                model = Model(Generator().data, model.player, model.level + 1) 
+                    return self._user_input.getchar()
+                Saver().save(model)
+                adapter.update(model)
+                self._rec.add_new_record(model)
+                model = Model(Generator().data, model.player, model.stats) 
                 self._render.clear_game_field()    
-                self._render.show_level(model.level + 1)
-                self._render.show_records(self._records.data)
-            self._render.render(model)
+                self._render.show_level(model.level)
+                self._render.show_records(self._rec.data)
+            self._render.render(model)                
         else:
-            self._records.add_new_record([model.treasures_collected(), model.level + 1])
-        
-    # def _game_loop(self):
-
-    #     sys.stdout.write(f'\033[{53};{1}H\033[2K{Generator()}')
+            self._rec.add_new_record(model)
+            Saver().remove_saved_model()
 
 
 if __name__ == '__main__':

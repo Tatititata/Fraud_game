@@ -15,3 +15,6 @@ class Navigator:
     def place_weapon(self, pos, weapon):
         return self._model.place_weapon(pos, weapon)
     
+    def add_statistics(self, key:str, value:int=1):
+        return self._model.add_statistics(key, value)
+    

@@ -19,6 +19,9 @@ class Monster(Character):
         for k, v in data.items():
             setattr(self, k, v)
 
+    def drop_treasure(self):
+        return randint(1, self.hostility + self.strength + self.dexterity+ self.max_health)
+
     def __repr__(self):
         return f'({self.id}, {self.hostility}, {self.pos})'
 

@@ -46,7 +46,7 @@ class Render:
         self._old_gamestate = gamestate
         self.restore_backpack = backpack - self.restore_backpack
         self._render_backpack(INFO_MENU_POS_Y + 2, INFO_MENU_POS_X + 18)
-        self._render_game(model.first_screen())
+        self._render_game(model.first_screen)
         self._out.flush()
 
     def render(self, model):
@@ -65,7 +65,7 @@ class Render:
         else:
             self._render_backpack_details(backpack)
         if gamestate == NORMAL:
-            self._render_game(model.data_for_rendering())
+            self._render_game(model.data_for_rendering)
         elif gamestate == FOOD:
             self._render_food_menu()
         elif gamestate == POTION:
@@ -75,16 +75,7 @@ class Render:
         elif gamestate == WEAPON:
             self._render_weapon_menu()
 
-        # if info:
-        #     self._show_current_danger(info)
         self._out.flush()
-
-    # def _show_current_danger(self, info):
-    #     y, x = INFO_MENU_POS_Y + INFO_MENU_HEIGHT, INFO_MENU_POS_X
-    #     for i in info:
-    #         self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H{i}')
-    #         y += 1
-    #     self._backpack_menu_height = y - INFO_MENU_POS_Y - INFO_MENU_HEIGHT
 
     def show_game_menu(self):
         self._draw_rectangle(INFO_MENU_POS_Y, INFO_MENU_POS_X, INFO_MENU_HEIGHT, INFO_MENU_WIDTH)
@@ -129,7 +120,6 @@ class Render:
         self._backpack_menu_height = y - INFO_MENU_POS_Y - INFO_MENU_HEIGHT + 1
         self._draw_rectangle(INFO_MENU_POS_Y + INFO_MENU_HEIGHT, INFO_MENU_POS_X, self._backpack_menu_height, INFO_MENU_WIDTH * 2)
         
-
     def _clear_backpack_menu(self):
         y, x = INFO_MENU_POS_Y + INFO_MENU_HEIGHT, INFO_MENU_POS_X
         for i in range(y, HEIGHT):
@@ -139,10 +129,10 @@ class Render:
         for (y, x), char in data_for_rendering.items():
             self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H{self._symbols.get(char, char)}')
 
-    def show_can_not_load_file_screen(self, e:str):
+    def show_can_not_load_game_screen(self):
         self.clear_game_field()
-        self._out.write(f'\033[3;3HCan not load file')
-        self._out.write(f'\033[4;3H{e}')
+        self._out.write(f'\033[3;5HNo saved game')
+        self._out.write(f'\033[5;5HPress any key to start new game')
         self._out.flush()
 
     def show_save_game_menu(self):
@@ -152,13 +142,12 @@ class Render:
         self._out.write(f'\033[7;3Hpress \'s\' key')
         self._out.flush()
 
-
     def show_start_game_menu(self):
         self.clear_game_field()
-        self._out.write(f'\033[3;3Hto start new game press any key')
-        self._out.write(f'\033[4;3Hto quit press q')
+        self._out.write(f'\033[3;5HPress \'l\' to load saved game.')
+        self._out.write(f'\033[4;5HPress \'q\' to quit.')
+        self._out.write(f'\033[5;5HPress any other key to start new game.')
         self._out.flush()
-
 
     def show_gameover_menu(self):
         self.clear_game_field()
@@ -189,11 +178,6 @@ class Render:
             self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
             self._out.write(f'{t:<8d} - - - {l:2d}'.center(INFO_MENU_WIDTH - 2))
             y += 1
-
-
-    # sys.stdout.write('\033[2J\033[H')  # Очистка экрана
-
-
 
     def _draw_game_info(self):
 
@@ -236,7 +220,6 @@ class Render:
         for k, v in self.restore_backpack:
             self._out.write(f"\033[{y+SHIFT + self._positions[k]};{x+SHIFT}H{v:4d}")
 
-
     def _draw_rectangle(self, y, x, h, w):
         self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
         self._out.write(TLCR)
@@ -252,7 +235,6 @@ class Render:
         self._out.write(WALL_HOR * (w - 2))
         self._out.write(BRCR)
  
-
     def _render_game_border(self):
         #vertical border lines
         for y in range(HEIGHT):
@@ -267,7 +249,6 @@ class Render:
         self._out.write(f'\033[{SHIFT};{SHIFT + WIDTH - 1}H{TRCR}')
         self._out.write(f'\033[{SHIFT + HEIGHT - 1};{SHIFT}H{BLCR}')
         self._out.write(f'\033[{SHIFT + HEIGHT - 1};{SHIFT + WIDTH - 1}H{BRCR}')
-
 
     def clear_game_field(self):
         for y in range(HEIGHT - 2):

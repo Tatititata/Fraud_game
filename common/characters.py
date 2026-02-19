@@ -17,6 +17,7 @@ POTION = '!'
 SCROLL = '?'
 WEAPON = ')'
 
+CAPACITY = 9
 
 HEALTH = 'h'
 MAX_HEALTH = 'H'

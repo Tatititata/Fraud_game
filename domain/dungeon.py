@@ -1,19 +1,9 @@
 class Room:
 
     def __init__(self, data):
-        self.id = None
-        self.floor = None
-        self.tlc = None
-        self.trc = None
-        self.blc = None
-        self.brc = None
-        self.left_wall = None
-        self.right_wall = None
-        self.top_wall = None
-        self.bottom_wall = None
-        self.gate = None
-
         if isinstance(data, tuple):
+            with open ('generator.txt', 'a') as f:
+                    f.write(f'init rooms from tuple {data}\n')
             self._init_from_tuple(data)
         elif isinstance(data, dict):
             self._init_from_dict(data)
@@ -36,18 +26,11 @@ class Room:
     #                 raise
             
     def _init_from_dict(self, data:dict):
-        SINGLE_COORDS = {'tlc', 'trc', 'blc', 'brc'}
-        MULTI_COORDS = {'floor', 'left_wall', 'right_wall', 'top_wall', 'bottom_wall', 'gate'}
-        
         for k, v in data.items():
-            if not hasattr(self, k):
-                raise AttributeError(f"{self.__class__.__name__}._init_from_dict")
-            if k == 'id':
-                setattr(self, k, v)
-            elif k in SINGLE_COORDS:
-                setattr(self, k, tuple(v))
-            elif k in MULTI_COORDS:
+            if k.startswith('_'):
                 setattr(self, k, {tuple(coord) for coord in v})
+            else:
+                setattr(self, k, v)
 
 
 
@@ -55,58 +38,83 @@ class Room:
         # y, x = up left corner
         id, y, x, h, w = data
         self.id = id
-        self.floor = set((i, j) for i in range(y + 1, y + h - 1) for j in range(x + 1, x + w - 1))
-        self.tlc = (y, x)
-        self.trc = (y, x + w - 1)
-        self.blc = (y + h - 1, x)
-        self.brc = (y + h - 1, x + w - 1)
-        self.left_wall = set((i, x) for i in range(y + 1, y + h - 1))
-        self.right_wall = set((i, x + w - 1) for i in range(y + 1, y + h - 1))
-        self.top_wall = set((y, j) for j in range(x + 1, x + w - 1))
-        self.bottom_wall = set((y + h - 1, j) for j in range(x + 1, x + w - 1))
-        self.gate = set()
+        self.y = y
+        self.x = x
+        self.h = h
+        self.w = w
+        self._gate = set()
+
+    @property
+    def floor(self):
+        if not hasattr(self, '_floor'):
+            floor = set((i, j) for i in range(self.y + 1, self.y + self.h - 1) for j in range(self.x + 1, self.x + self.w - 1))    
+            setattr(self,  '_floor', floor)
+            return floor
+        return self._floor 
+    
+    @property
+    def tlc(self):
+        return (self.y, self.x)
+    
+    @property
+    def trc(self):
+        return (self.y, self.x + self.w - 1)
+
+    @property
+    def blc(self):
+        return (self.y + self.h - 1, self.x)
+    
+    @property
+    def brc(self):
+        return (self.y + self.h - 1, self.x + self.w - 1)
+    
+    @property
+    def vertical_walls(self):
+        left_wall = set((i, self.x) for i in range(self.y + 1, self.y + self.h - 1))
+        right_wall = set((i, self.x + self.w - 1) for i in range(self.y + 1, self.y + self.h - 1))
+        left_wall.update(right_wall)
+        left_wall -= self._gate
+        return left_wall
+    
+    @property
+    def horizontal_walls(self):
+        top_wall = set((self.y, j) for j in range(self.x + 1, self.x + self.w - 1))
+        bottom_wall = set((self.y + self.h - 1, j) for j in range(self.x + 1, self.x + self.w - 1))
+        top_wall.update(bottom_wall)
+        top_wall -= self.gate
+        return top_wall
+        
 
     def to_dict(self):
         d = {attr: getattr(self, attr) for attr in self.__dict__ if not attr.startswith('_')}
-        for a, v in d.items():
-            if isinstance(v, set):
-                d[a] = [*v]
-
+        d['_gate'] = [[y, x] for (y,x ) in self._gate]
         return d
 
     @property
-    def y(self):
-        return self.tlc[0]
-    @property
-    def x(self):
-        return self.tlc[1]
-    @property
-    def h(self):
-        return self.blc[0] - self.tlc[0] + 1
-    @property
-    def w(self):
-        return self.trc[1] - self.tlc[1] + 1
-    @property
     def center(self):
-        return (self.tlc[0] + self.blc[0]) / 2, (self.tlc[1] + self.trc[1]) / 2
+        return (self.y + self.h / 2, self.x + self.w / 2)
     
     @property
     def walls(self):
         return {self.tlc, self.trc, self.blc, self.brc} \
-            | self.left_wall | self.right_wall | self.top_wall | self.bottom_wall | self.gate
+            | self.horizontal_walls | self.vertical_walls | self.gate
 
+    @property
+    def gate(self):
+        return self._gate
+    
     def make_gate(self, y, x):
         pos = (y, x)
         self.gate.add(pos)
         # self.floor.add(pos)
-        if pos in self.left_wall:
-            self.left_wall.discard(pos)
-        elif pos in self.right_wall:
-            self.right_wall.discard(pos)
-        elif pos in self.top_wall:
-            self.top_wall.discard(pos)
-        else:
-            self.bottom_wall.discard(pos)
+        # if pos in self.left_wall:
+        #     self.left_wall.discard(pos)
+        # elif pos in self.right_wall:
+        #     self.right_wall.discard(pos)
+        # elif pos in self.top_wall:
+        #     self.top_wall.discard(pos)
+        # else:
+        #     self.bottom_wall.discard(pos)
 
     def __repr__(self):
         return repr({k: v for k, v in self.__dict__.items() if not k.startswith('_')})

@@ -61,48 +61,10 @@ class Backpack:
     def to_dict(self):
         return {k: [i.to_dict() for i in v] for k, v in self.have.items()}
 
-class Item:
-    def __init__(self, data, level=0):
-        if isinstance(data, str):
-            self._init_new_item(data, level)
-        elif isinstance(data, dict):
-            self._init_from_dict(data)
-        else:
-            raise TypeError(f"{self.__class__.__name__}._init_ {type(data)}")
-
-    def _init_from_dict(self, data:dict):
-        if 'id' in data:
-            for k, v in data.items():
-                setattr(self, k, v)
-        else:
-            raise AttributeError(f"{self.__class__.__name__}._init_from_dict")
-
-    def _init_new_item(self, id, level=0):
-        self.id = id  
-        if id == WEAPON:
-            self.type = choice(['spear', 'sword', 'knife'])
-            self.power = randint(1 + level // 3, 5 + level // 2)
-        elif id == FOOD:
-            self.type = choice(['bread', 'honey', 'steak', 'water'])
-            self.power = randint(3, 8) + level // 2
-        elif id == POTION: # tempopary
-            self.type = choice(['strength', 'dexterity', 'max_health'])
-            self.power = randint(1, 3) + level // 4
-            self.duration = 15 + level * 2
-        elif id == SCROLL: # permanent
-            self.type = choice(['strength', 'dexterity', 'max_health'])
-            self.power = randint(1, 2) + level // 5
-
-    def to_dict(self):
-        return {k: v for k, v in self.__dict__.items() if not k.startswith('_')}
-        
-    def __repr__(self):
-        return str(self.to_dict())
-
 class Entity:
-    def __init__(self, id = None, pos=None):
+    def __init__(self, id=None, pos=None):
         self.id = id
-        self.pos = pos
+        self._pos = pos
 
     @property
     def pos(self):
@@ -114,6 +76,52 @@ class Entity:
             self._pos = tuple(pos)
         else:
             self._pos = pos
+
+
+class Item(Entity):
+    def __init__(self, data, level=0):
+
+        if isinstance(data, tuple):
+            self._init_new_item(data)
+        elif isinstance(data, dict):
+            self._init_from_dict(data)
+        else:
+            raise TypeError(f"{self.__class__.__name__}._init_ {type(data)}, {data}")
+
+    def _init_from_dict(self, data:dict):
+        if 'id' in data:
+            for k, v in data.items():
+                setattr(self, k, v)
+        else:
+            raise AttributeError(f"{self.__class__.__name__}._init_from_dict")
+
+    def _init_new_item(self, data, level=0):
+
+        super().__init__(*data) 
+
+        if self.id == WEAPON:
+            self.type = choice(['spear', 'sword', 'knife'])
+            self.power = randint(1 + level // 3, 5 + level // 2)
+        elif self.id == FOOD:
+            self.type = choice(['bread', 'honey', 'steak', 'water'])
+            self.power = randint(3, 8) + level // 2
+        elif self.id == POTION: # tempopary
+            self.type = choice(['strength', 'dexterity', 'max_health'])
+            self.power = randint(1, 3) + level // 4
+            self.duration = 15 + level * 2
+        elif self.id == SCROLL: # permanent
+            self.type = choice(['strength', 'dexterity', 'max_health'])
+            self.power = randint(1, 2) + level // 5
+
+    def to_dict(self):
+        d = {k: v for k, v in self.__dict__.items() if not k.startswith('_')}
+        d['pos'] = [*self.pos]
+        return d
+        
+    def __repr__(self):
+        return str(self.__dict__)
+
+
 
 
 class Character(Entity):
@@ -141,9 +149,10 @@ class Player(Character):
         self.max_health = 20
         self.backpack = None
         self._permanent_items = {}
-        self._free_hands = Item(WEAPON, 0)
+        self._free_hands = Item((WEAPON, (0,0)))
         self._free_hands.power = 0
         self.current_weapon = self._free_hands
+
         if data is None:
             self.backpack = Backpack()
         else:

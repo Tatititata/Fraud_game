@@ -14,7 +14,16 @@ class Model:
     BACKPACK_SHOW_MENU = {'j': FOOD, 'h': WEAPON, 'e': SCROLL, 'k':POTION}
     MONSTERS_DICT = dict(zip(MONSTERS, (Zombie, Vampire, Ghost, Ogre , Snake)))
 
-    def __init__(self, data, player=None, statistics=None):
+    def __init__(self, data, statistics=None):
+        with open('log.txt', 'w') as f:
+           f.write(f'model init \n{data}\n')
+        data = data.data
+        if statistics or data.get('statistics'):
+            statistics = statistics or data.get('statistics')
+            self._statistics = {k: v for k, v in statistics.items()}
+        else:
+            self._statistics = {k: 0 for k in STATISTICS}
+            self._statistics['level_reached'] = 1
 
         self.passed = False
         self._gamestate = NORMAL
@@ -22,72 +31,37 @@ class Model:
         self._visible = set()
         self._matrix = None
         self._layout = {}
-
-        if isinstance(data, dict):
-            self._load_from_dict(data)
-        elif isinstance(data, tuple):
-            self._load_from_tuple(data, player, statistics)
-        else:
-            raise AttributeError(f"{self.__class__.__name__}._init_")
-
-    def _load_from_dict(self, data:dict):
+        self._monsters = set()
+        self._items = set()
         self._rooms = [Room(r) for r in data['rooms']]
         self._corridors = [Corridor(c) for c in data['corridors']]
+        self._player = Player(data.get('player'), self._nav)
         self._create_matrix()
         self._create_layout()
+
+        self._explored = {tuple(i) for i in data.get('explored', set())}
         self._monsters_from_dict(data['monsters'])
         self._items_from_dict(data['items'])
-        self._player = Player(data['player'], self._nav)
-        self._visited = [i for i in data['visited']]
-        self._explored = {tuple(i) for i in data['explored']}
-        self._statistics = {k: v for k, v in data['statistics'].items()}
-        with open('log.txt', 'a') as f:
-            f.write(f'self._statistics __init__ {self._statistics}\n')
+        
+        if data.get('visited'):
+            self._visited = [i for i in data['visited']]
+        else:
+            self._visited = [0] * ROOMS
         
     def _monsters_from_dict(self, data:list):
-        self._monsters = set()
         for m in data:
-            monster = self.MONSTERS_DICT[m['id']](self._nav)
-            monster.set_features(m)
+            monster = self.MONSTERS_DICT[m['id']]()
+            monster.set_features(m, self._nav)
             self._monsters.add(monster)
             self._matrix[monster.pos][1] = monster
 
     def _items_from_dict(self, data:list):
-        self._items = set()
         for d in data:
             y, x, item_dict = d
             pos = (y, x)
             item = Item(item_dict)
             self._items.add(((pos), item))
             self._matrix[pos][1] = item        
-
-    def _load_from_tuple(self, data, player, statistics):
-        if not statistics:
-            self._statistics = {k: 0 for k in STATISTICS}
-            self._statistics['level_reached'] = 1
-        else:
-            self._statistics = {k: v for k, v in statistics.items()}
-        self._rooms = data[0]
-        self._corridors = data[1]
-        self._visited = [0] * (ROOMS)
-        self._create_matrix()
-        self._create_layout()
-        self._player = player or Player()
-        self._monsters = set()
-        self._items = set()
-        self._explored = set()
-        self._place_monsters(data[2])
-        self._place_items(data[3])
-        self._place_player(data[2])
-        
-
-        # with open('log.txt', 'w') as f:
-        #     f.write(f'items\n{self._items}\n')
-        #     f.write(f'monsters\n{self._monsters}')
-        #     f.write(f'visible\n{self._visible}\n')
-        #     f.write(f'visited\n{self._visited}\n')
-        #     f.write(f'explored\n{self._explored}\n')
-        #     f.write(f'backpack\n{self._player.backpack}\n')
 
     def _move_player(self, char):
         new_y, new_x = self._player.pos
@@ -131,6 +105,7 @@ class Model:
         for i, r in enumerate(self._rooms):
             for floor in r.floor:
                 self._matrix[floor] = [i, None]
+        self._matrix[self._player.pos][1] = self._player
         
     def _create_layout(self):
         for r in self._rooms:
@@ -192,65 +167,6 @@ class Model:
                             self._layout[(y, x)] = '┃'
                 else:
                     self._layout[(y, x)] = '━'
-
-    def _place_player(self, start):
-        self._player.pos = self._get_pos(start)
-        self._matrix[self._player.pos][1] = self._player
-        self._player._nav = self._nav
-        # with open('log.txt', 'w') as f:
-        #     f.write(f"{self._player.pos}\n")
-        #     for key, value in sorted(self._matrix.items()):
-        #         f.write(f"{key}: {value}\n")
-
-    def _get_pos(self, r):
-        pos = choice(list(self._rooms[r].floor))
-        while self._matrix[pos][1] is not None:
-            pos = choice(list(self._rooms[r].floor))
-        return pos
-    
-    def _place_items(self, end):
-        items = dict(zip(ITEMS, 
-          (
-              max(5 - self.level, 1),           #food
-              max(3 - self.level // 2, 1),      #potion
-              max(2 - self.level // 3, 1),      #scroll
-              1 + self.level // 5               #weapon
-              )))
-        
-        positions = list(self._matrix)
-        for item, quantity in items.items():
-            for _ in range(quantity):
-                pos = choice(positions)
-                while self._matrix[pos][1] is not None:
-                    pos = choice(positions)
-                it = Item(item, self.level)
-                self._matrix[pos][1] = it
-                self._items.add((pos, it))
-        positions = list(self._rooms[end].floor)
-        pos = choice(positions)
-        while self._matrix[pos][1] is not None:
-            pos = choice(positions)
-        it = Item(EXIT)
-        self._matrix[pos][1] = it
-        self._items.add((pos, it))
-        
-    def _place_monsters(self, start):
-        # return
-        rooms = {start,}
-        monsters = list(MONSTERS)[:2]
-        for i in range(self.level - 1):
-            monsters.append(choice(monsters))
-        for m in monsters:
-            r = randint(0, ROOMS - 1)
-            while r in rooms:
-                r = randint(0, ROOMS - 1)
-            rooms.add(r)
-            if len(rooms) == ROOMS:
-                rooms = {start,}
-            pos = self._get_pos(r)
-            monster = self.MONSTERS_DICT[m](self._nav, pos, r, self.level)
-            self._matrix[pos][1] = monster
-            self._monsters.add(monster)
 
     def _handle_enemies(self):
         for e in self._monsters:
@@ -338,6 +254,9 @@ class Model:
         value = self._matrix.get(pos)
         return value is not None and value[1] is None
     
+    def valid(self, pos):
+        return pos in self._matrix
+
     @property
     def backpack(self):
         if self.gamestate in (NORMAL, GAMEOVER):
@@ -391,6 +310,13 @@ class Model:
     @property
     def stats(self):
         return self._statistics
+    
+    @property
+    def full_statistics(self):
+        d = self.stats
+        d.update(self._player.backpack.to_dict())
+        d['max_health'] = self._player.max_health
+        return d
 
     def add_statistics(self, key:str, value:int=1):
         self._statistics[key] += value
@@ -417,12 +343,99 @@ class Model:
 
     def data_for_saving(self):
         data = {}
-        data['visited'] = self._visited
-        data['explored'] = [i for i in self._explored]
         data['player'] = self._player.to_dict()
         data['monsters'] = [r.to_dict() for r in self._monsters]
         data['items'] = [[*pos, r.to_dict() ] for pos, r in self._items]
+        data['statistics'] = self._statistics
+        data['visited'] = self._visited
+        data['explored'] = [i for i in self._explored]
         data['rooms'] = [r.to_dict() for r in self._rooms ]
         data['corridors'] = [r.to_dict() for r in self._corridors ]
-        data['statistics'] = self._statistics
         return data
+
+
+
+    # def _place_player(self, start):
+    #     self._player.pos = self._get_pos(start)
+    #     self._matrix[self._player.pos][1] = self._player
+    #     self._player._nav = self._nav
+    #     # with open('log.txt', 'w') as f:
+    #     #     f.write(f"{self._player.pos}\n")
+    #     #     for key, value in sorted(self._matrix.items()):
+    #     #         f.write(f"{key}: {value}\n")
+
+    # def _get_pos(self, r):
+    #     pos = choice(list(self._rooms[r].floor))
+    #     while self._matrix[pos][1] is not None:
+    #         pos = choice(list(self._rooms[r].floor))
+    #     return pos
+    
+    # def _place_items(self, end):
+    #     items = dict(zip(ITEMS, 
+    #       (
+    #           max(5 - self.level, 1),           #food
+    #           max(3 - self.level // 2, 1),      #potion
+    #           max(2 - self.level // 3, 1),      #scroll
+    #           1 + self.level // 5               #weapon
+    #           )))
+        
+    #     positions = list(self._matrix)
+    #     for item, quantity in items.items():
+    #         for _ in range(quantity):
+    #             pos = choice(positions)
+    #             while self._matrix[pos][1] is not None:
+    #                 pos = choice(positions)
+    #             it = Item(item, self.level)
+    #             self._matrix[pos][1] = it
+    #             self._items.add((pos, it))
+    #     positions = list(self._rooms[end].floor)
+    #     pos = choice(positions)
+    #     while self._matrix[pos][1] is not None:
+    #         pos = choice(positions)
+    #     it = Item(EXIT)
+    #     self._matrix[pos][1] = it
+    #     self._items.add((pos, it))
+        
+    # def _place_monsters(self, start):
+    #     # return
+    #     rooms = {start,}
+    #     monsters = list(MONSTERS)[:2]
+    #     for i in range(self.level - 1):
+    #         monsters.append(choice(monsters))
+    #     for m in monsters:
+    #         r = randint(0, ROOMS - 1)
+    #         while r in rooms:
+    #             r = randint(0, ROOMS - 1)
+    #         rooms.add(r)
+    #         if len(rooms) == ROOMS:
+    #             rooms = {start,}
+    #         pos = self._get_pos(r)
+    #         monster = self.MONSTERS_DICT[m](self._nav, pos, r, self.level)
+    #         self._matrix[pos][1] = monster
+    #         self._monsters.add(monster)
+
+
+    # def _load_generated_game(self, data, player, statistics):
+
+    #     self._rooms = data['rooms']
+    #     self._corridors = data['corridors']
+    #     self._visited = [0] * (ROOMS)
+    #     self._matrix = data['matrix']
+    #     # self._create_matrix()
+    #     self._create_layout()
+    #     self._player = player or Player()
+    #     self._monsters = set()
+    #     self._items = set()
+    #     self._explored = set()
+    #     self._place_monsters(data[2])
+    #     self._place_items(data[3])
+    #     self._place_player(data[2])
+        
+
+        # with open('log.txt', 'w') as f:
+        #     f.write(f'items\n{self._items}\n')
+        #     f.write(f'monsters\n{self._monsters}')
+        #     f.write(f'visible\n{self._visible}\n')
+        #     f.write(f'visited\n{self._visited}\n')
+        #     f.write(f'explored\n{self._explored}\n')
+        #     f.write(f'backpack\n{self._player.backpack}\n')

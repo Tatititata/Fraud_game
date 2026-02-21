@@ -7,20 +7,30 @@ import sys
 
 
 class Monster(Character):
-    def __init__(self, id, nav:Navigator, pos, r):
-        super().__init__(id, nav, pos)
+    def __init__(self, id, pos, r):
+        super().__init__(id, pos)
         self.room = r
-        self.hostility = 0
         self._patrol_moves = ((1, 0), (0, 1), (-1, 0), (0, -1))
         self._go_home_moves = self._patrol_moves
 
 
-    def set_features(self, data):
+    def set_features(self, data, nav):
         for k, v in data.items():
             setattr(self, k, v)
+        self._nav = nav
+
+    def set_init_values(self, k):
+        with open ('adapter.txt', 'a') as f:
+            f.write(f'monster: {self.id} ')
+            for value in ('health', 'hostility', 'dexterity', 'strength'):
+                val = randint(getattr(self, 'MIN_' + value), getattr(self, 'MAX_' + value))
+                val = round(val * k)
+                setattr(self, value, val)
+                f.write(f'{value} - {val} ')
+            f.write('\n')
 
     def drop_treasure(self):
-        return randint(1, self.hostility + self.strength + self.dexterity+ self.max_health)
+        return randint(1, self.hostility + self.strength + self.dexterity+ self.MAX_health)
 
     def __repr__(self):
         return f'({self.id}, {self.hostility}, {self.pos})'
@@ -81,14 +91,14 @@ class Monster(Character):
                 x += sx
                 if y == y1 and x == x1:
                     return True
-                if not self._nav.walkable((y, x)):
+                if not self._nav.valid((y, x)):
                     return False          
                 if d >= 0:
                     y += sy      
                     if y == y1 and x == x1:
                         return True
                     d -= 2*dx
-                    if not self._nav.walkable((y, x)):
+                    if not self._nav.valid((y, x)):
                         return False
                 d += 2*dy        
         else:        
@@ -97,14 +107,14 @@ class Monster(Character):
                 y += sy       
                 if y == y1 and x == x1:
                     return True   
-                if not self._nav.walkable((y, x)):
+                if not self._nav.valid((y, x)):
                     return False
                 if d >= 0:
                     x += sx  
                     if y == y1 and x == x1:
                         return True   
                     d -= 2*dy  
-                    if not self._nav.walkable((y, x)):
+                    if not self._nav.valid((y, x)):
                         return False
                 d += 2*dx   
 
@@ -160,51 +170,105 @@ class Monster(Character):
         'health': self.health
         }
     
-
+'', 'hostility', 'dexterity', ''
 class Snake(Monster):
-    def __init__(self, nav:Navigator=None, pos=None, r=None, level=0):
+    MIN_health = 4
+    MAX_health = 6
+    MIN_strength = 2
+    MAX_strength = 3
+    MIN_dexterity = 6
+    MAX_dexterity = 8
+    MIN_hostility = 5
+    MAX_hostility = 6
 
-        super().__init__(SNAKE, nav, pos, r)
-        self.health = self.max_health = 20 + level * 5
-        self.dexterity= 25 + level
-        self.strength = 8 + level
-        self.hostility = 10
+    def __init__(self, pos=None, r=None):
+        super().__init__(SNAKE, pos, r)
+        # self.health = self.max_health = 20 + level * 5
+        # self.dexterity= 25 + level
+        # self.strength = 8 + level
+        # self.hostility = 10
         self._patrol_moves = ((1, 1), (-1, 1), (1, -1), (-1, -1))
         # self._go_home_moves = ((1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1), (1, -1), (-1, -1))
         
 class Ogre(Monster):
-    def __init__(self, nav:Navigator=None, pos=None, r=None, level=0):
 
-        super().__init__(OGRE, nav, pos, r)
-        self.health = self.max_health = 50 + level * 5
-        self.dexterity= 5 + level
-        self.strength = 24 + level
-        self.hostility = 6
+    MIN_health = 15
+    MAX_health = 18
+    MIN_strength = 5
+    MAX_strength = 6
+    MIN_dexterity = 1
+    MAX_dexterity = 2
+    MIN_hostility = 4
+    MAX_hostility = 5
+
+    def __init__(self, pos=None, r=None):
+        super().__init__(OGRE, pos, r)
+        # self.health = 0
+        # self.dexterity= 5 + level
+        # self.strength = 24 + level
+        # self.hostility = 6
 
 class Vampire(Monster):
-    def __init__(self, nav:Navigator=None, pos=None, r=None, level=0):
 
-        super().__init__(VAMPIRE, nav, pos, r)
-        self.health = self.max_health = 25 + level * 5
-        self.dexterity= 16 + level
-        self.strength = 10 + level
-        self.hostility = 8
+    MIN_health = 10
+    MAX_health = 12
+    MIN_strength = 4
+    MAX_strength = 5
+    MIN_dexterity = 5
+    MAX_dexterity = 6
+    MIN_hostility = 5
+    MAX_hostility = 6
+
+    def __init__(self, pos=None, r=None):
+        super().__init__(VAMPIRE, pos, r)
+        # self.health = self.max_health = 25 + level * 5
+        # self.dexterity= 16 + level
+        # self.strength = 10 + level
+        # self.hostility = 8
 
 class Ghost(Monster):
-    def __init__(self, nav:Navigator=None, pos=None, r=None, level=0):
 
-        super().__init__(GHOST, nav, pos, r)
-        self.health = self.max_health = 15 + level * 5
-        self.dexterity= 18 + level
-        self.strength = 4 + level
-        self.hostility = 4
+    MIN_health = 5
+    MAX_health = 7
+    MIN_strength = 2
+    MAX_strength = 3
+    MIN_dexterity = 7
+    MAX_dexterity = 8
+    MIN_hostility = 3
+    MAX_hostility = 4
+
+    def __init__(self, pos=None, r=None):
+        super().__init__(GHOST, pos, r)
+        # self.health = self.max_health = 15 + level * 5
+        # self.dexterity= 18 + level
+        # self.strength = 4 + level
+        # self.hostility = 4
 
 class Zombie(Monster):
-    def __init__(self, nav:Navigator=None, pos=None, r=None, level=0):
 
-        super().__init__(ZOMBIE, nav, pos, r)
-        self.health = self.max_health = 30 + level * 5
-        self.dexterity= 3 + level
-        self.strength = 8 + level
-        self.hostility = 5
+    MIN_health = 8
+    MAX_health = 12
+    MIN_strength = 3
+    MAX_strength = 5
+    MIN_dexterity = 1
+    MAX_dexterity = 2
+    MIN_hostility = 3
+    MAX_hostility = 4
+
+    def __init__(self, pos=None, r=None):
+        super().__init__(ZOMBIE, pos, r)
+        # self.health = self.max_health = 30 + level * 5
+        # self.dexterity= 3 + level
+        # self.strength = 8 + level
+        # self.hostility = 5
+
+
+
+
+
+
+
+
+
+
 

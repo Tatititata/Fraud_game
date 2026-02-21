@@ -18,3 +18,6 @@ class Navigator:
     def add_statistics(self, key:str, value:int=1):
         return self._model.add_statistics(key, value)
     
+    def valid(self, pos):
+        return self._model.valid(pos)
+    

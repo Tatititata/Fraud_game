@@ -21,3 +21,6 @@ class Navigator:
     def valid(self, pos):
         return self._model.valid(pos)
     
+    def valid_for_monsters(self, pos):
+        return self._model.valid_for_monsters(pos)
+    

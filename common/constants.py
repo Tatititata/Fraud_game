@@ -29,18 +29,20 @@ HEIGHT = 50
 STATISTICS = ("treasure",
               "level_reached",
               "monsters_killed",
+              "monsters_left",
               "food_eaten",
               "potions_drunk",
               "scrolls_read",
               "hits_dealt",
               "hits_taken",
               "cells_moved",
-              "dexterity_used",
-              "dexterity_added",
-              "strength_used",
-              "strength_added",
+              "dexterity",
+              "strength",
+              'food',
+              'health',
               "health_used",
-              "health_added"
+              "health_added",
+              'weapon'
               )
 
 

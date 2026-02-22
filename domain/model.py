@@ -15,12 +15,11 @@ class Model:
     MONSTERS_DICT = dict(zip(MONSTERS, (Zombie, Vampire, Ghost, Ogre , Snake)))
 
     def __init__(self, data, statistics=None):
-        with open('log.txt', 'w') as f:
-           f.write(f'model init \n{data}\n')
         data = data.data
         if statistics or data.get('statistics'):
             statistics = statistics or data.get('statistics')
             self._statistics = {k: v for k, v in statistics.items()}
+            self._statistics["monsters_killed"] = 0
         else:
             self._statistics = {k: 0 for k in STATISTICS}
             self._statistics['level_reached'] = 1
@@ -53,8 +52,6 @@ class Model:
             monster = self.MONSTERS_DICT[m['id']]()
             monster.set_features(m, self._nav)
             self._monsters[monster.pos] = monster
-            with open('model.txt', 'a') as f:
-                f.write(f'{monster.__dict__}\n')
 
     def _items_from_dict(self, data:list):
         for d in data:
@@ -92,7 +89,6 @@ class Model:
         elif pos in self._matrix:
             self._player.pos = pos
             self._statistics["cells_moved"] += 1
-
 
     def _create_matrix(self):
         self._matrix = {pos: ROOMS + i for i, c in enumerate(self._corridors) for pos in c.walls}
@@ -155,20 +151,21 @@ class Model:
                     self._layout[(y, x)] = '━'
 
     def _handle_monsters(self):
-        for m in self._monsters.values():
+        for m in list(self._monsters.values()):
+            old_pos = m.pos
             m.move(self._player)
-        self._monsters = {m.pos: m for m in self._monsters.values()}
+            if m.pos != old_pos:
+                self._monsters[m.pos] = m
+                del self._monsters[old_pos]
+        # self._monsters = {m.pos: m for m in self._monsters.values()}
         self._player.update()
-        d = {m.id: (m.pos, m.room, self._matrix.get(m.pos)) for m in self._monsters.values()}
-        sys.stdout.write(f'\033[{51};{1}H{d}\r\n')
-        sys.stdout.write(f'\033[{52};{1}H{self._monsters.keys()}\r\n')
 
     def _update_visible(self, visible):
         y, x = self._player.pos
         for dy, dx in ((1, 0), (0, 1), (-1, 0), (0, -1)):
             pos = (y + dy, x + dx)
             value = self._matrix.get(pos)
-            while value:
+            while value is not None:
                 visible.add(pos)
                 if value >= ROOMS:
                     self._explored.add(pos)
@@ -214,24 +211,16 @@ class Model:
             res[pos] = self._layout.get(pos, GROUND)
         self._visible = visible
 
-        for m in self._monsters.values():
-            if m.pos in visible:
-                res[m.pos] = m.id
-
         for pos in self._items:
             if pos in visible:
                 res[pos] = self._items[pos].id
 
+        for m in self._monsters.values():
+            if m.pos in visible:
+                res[m.pos] = m.id
+
         res[self._player.pos] = self._player.id
-        # with open('log.txt', 'w') as f:
-        #         f.write(f'rooms\n{self._rooms}\n')
-        #         f.write(f'corrs\n{self._corridors}\n')
-        #         f.write(f'items\n{self._items}\n')
-        #         f.write(f'monsters\n{self._monsters}\n')
-        #         # f.write(f'visible\n{self._visible}\n')
-        #         f.write(f'visited\n{self._visited}\n')
-        #         f.write(f'explored\n{self._explored}\n')
-        #         f.write(f'backpack\n{self._player.backpack}\n')
+
         return res
 
     def place_entity(self, pos, e:Entity):
@@ -245,6 +234,9 @@ class Model:
     
     def valid(self, pos):
         return pos in self._matrix
+
+    def valid_for_monsters(self, pos):
+        return pos in self._matrix and pos not in self._monsters
 
     @property
     def backpack(self):
@@ -261,11 +253,8 @@ class Model:
             return res
         res = []
         for d in self._player.backpack.have.get(self.gamestate):
-            # with open('log.txt', 'a') as f:
-            #     f.write(f'{d.__class__.__name__}\n')
-            #     f.write(f'{d}\n')
             d = sorted(d.to_dict().items(), key=lambda x: len(x[0]), reverse=True)
-            d = ', '.join(f'{k}: {v}' for k, v in d if k != 'id')
+            d = ', '.join(f'{k}: {v}' for k, v in d if k != 'id' and k != 'pos')
             res.append(d)
         return res
     
@@ -277,8 +266,7 @@ class Model:
         for y, x in ((1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1), (1, -1), (-1, -1)):
             new_pos = (pos[0] + y, pos[1] + x)
             if self.walkable(new_pos):
-                self._matrix[new_pos][1] = weapon
-                self._items.add((new_pos, weapon))
+                self._items[new_pos] = weapon
                 return
 
     @property
@@ -300,8 +288,15 @@ class Model:
     @property
     def full_statistics(self):
         d = self.stats
-        d.update(self._player.backpack.to_dict())
         d['max_health'] = self._player.max_health
+        d['monsters_left'] = len(self._monsters)
+        d['playground_size'] = len(self._matrix)
+        d['dexterity'] = self._player.backpack.dexterity + self._player.dexterity
+        d['strength'] = self._player.backpack.strength + self._player.strength
+        d['health'] = self._player.backpack.health + self._player.health
+        d['food'] = self._player.backpack.food
+        d['weapon'] = self._player.weapon 
+
         return d
 
     def add_statistics(self, key:str, value:int=1):

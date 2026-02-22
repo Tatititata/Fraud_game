@@ -13,7 +13,6 @@ class Monster(Character):
         self._patrol_moves = ((1, 0), (0, 1), (-1, 0), (0, -1))
         self._go_home_moves = self._patrol_moves
 
-
     def set_features(self, data, nav):
         for k, v in data.items():
             setattr(self, k, v)
@@ -39,17 +38,14 @@ class Monster(Character):
 
     def move(self, player):
         pos = self._path_to_player(player)
-        
         if pos:
-            sys.stdout.write(f'\033[{53};{1}H\033[0K')
-            sys.stdout.write(f'\033[{53};{1}H{self.id}{self.pos}r={self.room}->player={player.pos}-pos to move:{pos}\r\n')
-            if pos != player.pos:
+            
+            if pos != player.pos and self._nav.valid_for_monsters(pos):
                 self.pos = pos
             else:
                 self.attack(player)
         else:
             if self.room != self._nav.room_number(self.pos):
-                
                 self._go_home()
             else:
                 self._patrol()
@@ -74,7 +70,6 @@ class Monster(Character):
                         new_stack.append(new_pos)
                         path[new_pos] = pos
             stack = new_stack
-
 
     def _path_to_player(self, player): 
         y0, x0 = self.pos
@@ -119,138 +114,6 @@ class Monster(Character):
                         return None
                 d += 2*dx   
 
-    def _get_path_to_player(self, player): 
-        y0, x0 = self.pos
-        y1, x1 = player.pos
-        dx = abs(x1 - x0)
-        dy = abs(y1 - y0)
-        sx = 1 if x0 < x1 else -1
-        sy = 1 if y0 < y1 else -1
-        x, y = x0, y0
-        path = []
-        if dx > dy:
-            d = 2*dy - dx
-            while True: 
-                x += sx
-                if y == y1 and x == x1:
-                    return path         
-                path.append((y, x))
-                if d >= 0:
-                    y += sy      
-                    if y == y1 and x == x1:
-                        return path
-                    d -= 2*dx
-                    path.append((y, x))
-                d += 2*dy                        
-        else:        
-            d = 2*dx - dy
-            while True:
-                y += sy       
-                if y == y1 and x == x1:
-                    return path   
-                path.append((y, x))
-                if d >= 0:
-                    x += sx  
-                    if y == y1 and x == x1:
-                        return path   
-                    d -= 2*dy  
-                    path.append((y, x))
-                d += 2*dx 
-
-    def move_working_vers(self, player):
-        if self._player_visible(player):
-            path = self._get_path_to_player(player)
-            if path:
-                self._nav.place_entity(path[0], self)
-            else:
-                # sys.stdout.write(f'\033[{1 + global_counter()};{104}H{self.id} must attack player')
-                self.attack(player)
-        else:
-            if self.room != self._nav.room_number(self.pos):
-                self._go_home()
-            else:
-                self._patrol()
-    def _player_visible_working_vers(self, player): 
-        y0, x0 = self.pos
-        y1, x1 = player.pos
-        dx = abs(x1 - x0)
-        dy = abs(y1 - y0)
-        if max(dx, dy) > self.hostility:
-            return False
-        sx = 1 if x0 < x1 else -1
-        sy = 1 if y0 < y1 else -1
-        x, y = x0, y0
-        if dx > dy:
-            d = 2*dy - dx
-            while True: 
-                x += sx
-                if y == y1 and x == x1:
-                    return True
-                if not self._nav.valid((y, x)):
-                    return False          
-                if d >= 0:
-                    y += sy      
-                    if y == y1 and x == x1:
-                        return True
-                    d -= 2*dx
-                    if not self._nav.valid((y, x)):
-                        return False
-                d += 2*dy        
-        else:        
-            d = 2*dx - dy
-            while True:
-                y += sy       
-                if y == y1 and x == x1:
-                    return True   
-                if not self._nav.valid((y, x)):
-                    return False
-                if d >= 0:
-                    x += sx  
-                    if y == y1 and x == x1:
-                        return True   
-                    d -= 2*dy  
-                    if not self._nav.valid((y, x)):
-                        return False
-                d += 2*dx   
-    def _get_path_to_player_working_vers(self, player): 
-        y0, x0 = self.pos
-        y1, x1 = player.pos
-        dx = abs(x1 - x0)
-        dy = abs(y1 - y0)
-        sx = 1 if x0 < x1 else -1
-        sy = 1 if y0 < y1 else -1
-        x, y = x0, y0
-        path = []
-        if dx > dy:
-            d = 2*dy - dx
-            while True: 
-                x += sx
-                if y == y1 and x == x1:
-                    return path         
-                path.append((y, x))
-                if d >= 0:
-                    y += sy      
-                    if y == y1 and x == x1:
-                        return path
-                    d -= 2*dx
-                    path.append((y, x))
-                d += 2*dy                        
-        else:        
-            d = 2*dx - dy
-            while True:
-                y += sy       
-                if y == y1 and x == x1:
-                    return path   
-                path.append((y, x))
-                if d >= 0:
-                    x += sx  
-                    if y == y1 and x == x1:
-                        return path   
-                    d -= 2*dy  
-                    path.append((y, x))
-                d += 2*dx 
-
-
     def __repr__(self):
         return repr({k: v for k, v in self.__dict__.items() if not k.startswith('__')})
 
@@ -278,10 +141,6 @@ class Snake(Monster):
 
     def __init__(self, pos=None, r=None):
         super().__init__(SNAKE, pos, r)
-        # self.health = self.max_health = 20 + level * 5
-        # self.dexterity= 25 + level
-        # self.strength = 8 + level
-        # self.hostility = 10
         self._patrol_moves = ((1, 1), (-1, 1), (1, -1), (-1, -1))
         # self._go_home_moves = ((1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1), (1, -1), (-1, -1))
         
@@ -298,10 +157,6 @@ class Ogre(Monster):
 
     def __init__(self, pos=None, r=None):
         super().__init__(OGRE, pos, r)
-        # self.health = 0
-        # self.dexterity= 5 + level
-        # self.strength = 24 + level
-        # self.hostility = 6
 
 class Vampire(Monster):
 
@@ -316,10 +171,6 @@ class Vampire(Monster):
 
     def __init__(self, pos=None, r=None):
         super().__init__(VAMPIRE, pos, r)
-        # self.health = self.max_health = 25 + level * 5
-        # self.dexterity= 16 + level
-        # self.strength = 10 + level
-        # self.hostility = 8
 
 class Ghost(Monster):
 
@@ -334,10 +185,6 @@ class Ghost(Monster):
 
     def __init__(self, pos=None, r=None):
         super().__init__(GHOST, pos, r)
-        # self.health = self.max_health = 15 + level * 5
-        # self.dexterity= 18 + level
-        # self.strength = 4 + level
-        # self.hostility = 4
 
 class Zombie(Monster):
 
@@ -352,10 +199,7 @@ class Zombie(Monster):
 
     def __init__(self, pos=None, r=None):
         super().__init__(ZOMBIE, pos, r)
-        # self.health = self.max_health = 30 + level * 5
-        # self.dexterity= 3 + level
-        # self.strength = 8 + level
-        # self.hostility = 5
+
 
 
 

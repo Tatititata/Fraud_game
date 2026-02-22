@@ -1,7 +1,7 @@
 from random import randint, choice
 import traceback
 from common.constants import *
-from common.characters import MONSTERS, ITEMS
+from common.characters import MONSTERS, ITEMS, WEAPON
 # from common.playground import *
 from .dungeon import Room, Corridor
 from .monsters import Zombie, Snake, Ogre, Vampire, Ghost
@@ -14,7 +14,6 @@ class Generator:
 
     def __init__(self, ad, player=None):
         data = ad.data
-        self._k_total = data['K_total']
         self._k_monsters_quantity = data['K_monster_quantity']
         self._k_monster_strength = data['K_monster_strength']
         self._k_items_quantity = data['K_items_quantity']
@@ -161,8 +160,8 @@ class Generator:
                     for v in vertex[i]:
                         vertex[v] = vertex[i]
                 edges.append((i, j))
-        with open ('generator.txt', 'a') as f:
-            f.write(f'_connect_rooms {edges}\n')
+        # with open ('generator.txt', 'a') as f:
+        #     f.write(f'_connect_rooms {edges}\n')
         return edges, start, end
     
     def _bottom_left_corner_connection_(self, r1:Room, r2:Room): # └ connection
@@ -480,28 +479,36 @@ class Generator:
         if self._player is None:
             self._player = Player()
         self._player.pos = self._get_pos(start)
-
         self._items = set()
         pos = self._get_pos(end)
-        it = Item((EXIT, pos))
+        it = Item((EXIT, pos, 1))
         self._items.add(it)
 
     def _place_items(self):
         for c in self._corridors:
             self._matrix.update(c.walls)
-        
+        return
         items = dict(zip(ITEMS, 
-          (
-              max(5 - self._level, 1),           #food
-              max(3 - self._level // 2, 1),      #potion
-              max(2 - self._level // 3, 1),      #scroll
-              1 + self._level // 5               #weapon
-              )))
-        
+            (
+                max(round(5 * (self._k_items_quantity) * self._level), 1),      # food
+                max(round(3 * (self._k_items_quantity) * self._level), 1),      # potion
+                max(round(2 * (self._k_items_quantity) * self._level), 1)      # scroll
+            )))
+
         for item, quantity in items.items():
-            for _ in range(quantity):
+            with open('adapter.txt', 'a') as f:
+                f.write(f'generator items quantity {item} -> {quantity}\n')
+                for _ in range(quantity):
+                    pos = self._matrix.pop()
+                    it = Item((item, pos, self._k_items_power))
+                    f.write(f'item {it}\n')
+                    self._items.add(it)
+        with open('adapter.txt', 'a') as f:
+                
+            for _ in range(max(1, round(1 + self._level // 3))):      # weapon
                 pos = self._matrix.pop()
-                it = Item((item, pos))
+                it = Item((WEAPON, pos, self._k_monster_strength))
+                f.write(f'generator weapon {it}\n')
                 self._items.add(it)
 
     def _get_pos(self, r):
@@ -513,25 +520,30 @@ class Generator:
         return pos
         
     def _place_monsters(self, start):
-        # return
         self._monsters = set()
+        return
         rooms = {start,}
         quantity = round(randint(3, 5) * self._k_monsters_quantity)
+        with open('adapter.txt', 'a') as f:
+            f.write(f'generator monsters quantity {quantity}\n')
+            f.write(f'generator monsters strength {self._k_monster_strength}\n')
         monsters = list(MONSTERS)[:quantity]
         if quantity > len(monsters):
             for i in range(quantity - len(monsters)):
                 monsters.append(choice(monsters))
-        for m in monsters:
-            r = randint(0, ROOMS - 1)
-            while r in rooms:
+        with open('adapter.txt', 'a') as f:
+            for m in monsters:
                 r = randint(0, ROOMS - 1)
-            rooms.add(r)
-            if len(rooms) == ROOMS:
-                rooms = {start,}
-            pos = self._get_pos(r)
-            monster = self.MONSTERS_DICT[m](pos, r)
-            monster.set_init_values(self._k_monster_strength)
-            self._monsters.add(monster)
+                while r in rooms:
+                    r = randint(0, ROOMS - 1)
+                rooms.add(r)
+                if len(rooms) == ROOMS:
+                    rooms = {start,}
+                pos = self._get_pos(r)
+                monster = self.MONSTERS_DICT[m](pos, r)
+                monster.set_init_values(self._k_monster_strength)
+                self._monsters.add(monster)
+                f.write(f'generator monster -> {monster}\n')
 
 
     @property
@@ -542,8 +554,8 @@ class Generator:
         data['items'] = [item.to_dict() for item in self._items]
         data['rooms'] = [r.to_dict() for r in self._rooms ]
         data['corridors'] = [r.to_dict() for r in self._corridors ]
-        with open ('generator.txt', 'a') as f:
-            f.write(f'generator data {data}')
+        # with open ('generator.txt', 'a') as f:
+        #     f.write(f'generator data {data}')
         return data
 
 if __name__ == '__main__':

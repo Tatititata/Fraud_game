@@ -61,6 +61,35 @@ class Backpack:
     def to_dict(self):
         return {k: [i.to_dict() for i in v] for k, v in self.have.items()}
 
+    @property
+    def dexterity(self):
+        p = sum(i.power for i in self.have[POTION] if i.type == 'dexterity')
+        s = sum(i.power for i in self.have[SCROLL] if i.type == 'dexterity')
+        return  p + s 
+    
+    @property
+    def strength(self):
+        p = sum(i.power for i in self.have[POTION] if i.type == 'strength')
+        s = sum(i.power for i in self.have[SCROLL] if i.type == 'strength')
+        return  p + s 
+    
+    @property
+    def health(self):
+        p = sum(i.power for i in self.have[POTION] if i.type == 'max_health')
+        s = sum(i.power for i in self.have[SCROLL] if i.type == 'max_health')
+        return  p + s
+    
+    @property
+    def food(self):
+        return sum(i.power for i in self.have[FOOD])
+
+    @property
+    def weapon(self):
+        if self.have[WEAPON]:
+            return max(i.power for i in self.have[WEAPON])
+        return 0
+
+
 class Entity:
     def __init__(self, id=None, pos=None):
         self.id = id
@@ -79,7 +108,7 @@ class Entity:
 
 
 class Item(Entity):
-    def __init__(self, data, level=0):
+    def __init__(self, data):
 
         if isinstance(data, tuple):
             self._init_new_item(data)
@@ -95,23 +124,40 @@ class Item(Entity):
         else:
             raise AttributeError(f"{self.__class__.__name__}._init_from_dict")
 
-    def _init_new_item(self, data, level=0):
+    def _init_new_item(self, data):
+        id, pos, k = data
+        super().__init__(id, pos) 
 
-        super().__init__(*data) 
+        # if self.id == WEAPON:
+        #     self.type = choice(['spear', 'sword', 'knife'])
+        #     self.power = randint(1 + level // 3, 5 + level // 2)
+        # elif self.id == FOOD:
+        #     self.type = choice(['bread', 'honey', 'steak', 'water'])
+        #     self.power = randint(3, 8) + level // 2
+        # elif self.id == POTION: # tempopary
+        #     self.type = choice(['strength', 'dexterity', 'max_health'])
+        #     self.power = randint(1, 3) + level // 4
+        #     self.duration = 15 + level * 2
+        # elif self.id == SCROLL: # permanent
+        #     self.type = choice(['strength', 'dexterity', 'max_health'])
+        #     self.power = randint(1, 2) + level // 5
+
 
         if self.id == WEAPON:
             self.type = choice(['spear', 'sword', 'knife'])
-            self.power = randint(1 + level // 3, 5 + level // 2)
+            self.power = randint(2, 5) + round(k)
         elif self.id == FOOD:
             self.type = choice(['bread', 'honey', 'steak', 'water'])
-            self.power = randint(3, 8) + level // 2
-        elif self.id == POTION: # tempopary
+            self.power = round(randint(3, 8) * k)
+        elif self.id == POTION:
             self.type = choice(['strength', 'dexterity', 'max_health'])
-            self.power = randint(1, 3) + level // 4
-            self.duration = 15 + level * 2
-        elif self.id == SCROLL: # permanent
+            self.power = round(randint(1, 3) * k)
+            self.duration = round(randint(10, 20) * k)
+        elif self.id == SCROLL:
             self.type = choice(['strength', 'dexterity', 'max_health'])
-            self.power = randint(1, 2) + level // 5
+            self.power = round(randint(1, 2) * k)
+
+
 
     def to_dict(self):
         d = {k: v for k, v in self.__dict__.items() if not k.startswith('_')}
@@ -146,14 +192,13 @@ class Player(Character):
 
     def __init__(self, data=None, nav:Navigator=None):
         super().__init__(PLAYER, None, nav)
-        self.max_health = 20
-        self.backpack = None
         self._permanent_items = {}
-        self._free_hands = Item((WEAPON, (0,0)))
+        self._free_hands = Item((WEAPON, (0,0), 1))
         self._free_hands.power = 0
         self.current_weapon = self._free_hands
 
         if data is None:
+            self.max_health = 20
             self.backpack = Backpack()
         else:
             self._init_from_dict(data)
@@ -162,8 +207,6 @@ class Player(Character):
         for k, v in data.items():
             if not isinstance(k, dict):
                 setattr(self, k, v)
-
-            
         self.backpack = Backpack(data.get('backpack'))
         self.current_weapon = Item(data.get('current_weapon'))
         self._permanent_items = {(i, j):k for i, j, k in data.get('_permanent_items')}
@@ -183,7 +226,7 @@ class Player(Character):
         'strength': self.strength, 
         'health': self.health, 
         'current_weapon': self.current_weapon.to_dict(), 
-        'max_health': 30, 
+        'max_health': self.max_health, 
         'backpack': self.backpack.to_dict(),
         '_permanent_items': [[*k, v] for k, v in self._permanent_items.items()]
     }
@@ -236,8 +279,6 @@ class Player(Character):
                 list_to_del.append(k)
                 t, power = k
                 setattr(self, t, getattr(self, t) - power)
-                t = t.split('_')[-1] + '_used'
-                self._nav.add_statistics(t, -power)
         for k in list_to_del:
             del self._permanent_items[k]
         # sys.stdout.write(f'\033[{53};{1}H\033[2K{self._permanent_items}')
@@ -246,7 +287,7 @@ class Player(Character):
         if self.health + item.power < self.max_health:
             power = item.power
         else:
-            power = self.max_health - item.power
+            power = self.max_health - self.health
         self.health += power
         self._nav.add_statistics('food_eaten')
         self._nav.add_statistics('health_added', power)
@@ -257,18 +298,20 @@ class Player(Character):
 
     def _use_scroll(self, item:Item, info):
         setattr(self, item.type, getattr(self, item.type) + item.power)
-        t = item.type.split('_')[-1] + '_added'
         if item.type == 'max_health':
+            value = getattr(self, 'max_health') - getattr(self, 'health')
+            self._nav.add_statistics('health_added', value)
             setattr(self, 'health', getattr(self, 'max_health'))
         self._nav.add_statistics(info)
-        self._nav.add_statistics(t, item.power)
+
+    @property
+    def weapon(self):
+        return max(self.current_weapon.power, self.backpack.weapon)
 
     def _use_weapon(self, item:Item):
         if self.current_weapon.power:
-            self._nav.add_statistics('strength_used', -self.current_weapon.power)
             self._drop_weapon()
         self.current_weapon = item
-        self._nav.add_statistics('strength_added', self.current_weapon.power)
 
     def __repr__(self):
         return repr({k: v for k, v in self.__dict__.items() if not k.startswith('_')})

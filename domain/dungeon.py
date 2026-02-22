@@ -2,28 +2,11 @@ class Room:
 
     def __init__(self, data):
         if isinstance(data, tuple):
-            with open ('generator.txt', 'a') as f:
-                    f.write(f'init rooms from tuple {data}\n')
             self._init_from_tuple(data)
         elif isinstance(data, dict):
             self._init_from_dict(data)
         else:
             raise TypeError(f"{self.__class__.__name__}._init_")
-
-    # def _init_from_dict(self, data:dict):
-    #     with open('loader.txt', 'a') as f:
-    #         f.write(f'\nJSON\n{data.items()}\n')
-    #         f.write(f'\n_self\n{dir(self)}\n')
-
-    #         for k, v in data.items():
-    #             if hasattr(self, k):
-    #                 if k == 'id':
-    #                     setattr(self, k, v)
-    #                 else:
-    #                     setattr(self, k, {(i[0], i[1]) for i in v})
-    #                 f.write(f'\n_self\n{k}, {v}\n')
-    #             else:
-    #                 raise
             
     def _init_from_dict(self, data:dict):
         for k, v in data.items():
@@ -31,7 +14,6 @@ class Room:
                 setattr(self, k, {tuple(coord) for coord in v})
             else:
                 setattr(self, k, v)
-
 
 
     def _init_from_tuple(self, data:tuple):
@@ -105,16 +87,7 @@ class Room:
     
     def make_gate(self, y, x):
         pos = (y, x)
-        self.gate.add(pos)
-        # self.floor.add(pos)
-        # if pos in self.left_wall:
-        #     self.left_wall.discard(pos)
-        # elif pos in self.right_wall:
-        #     self.right_wall.discard(pos)
-        # elif pos in self.top_wall:
-        #     self.top_wall.discard(pos)
-        # else:
-        #     self.bottom_wall.discard(pos)
+        self._gate.add(pos)
 
     def __repr__(self):
         return repr({k: v for k, v in self.__dict__.items() if not k.startswith('_')})

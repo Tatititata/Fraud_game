@@ -22,7 +22,6 @@ class Rouge:
             self._render = Render(term.stdout)
             self._user_input = InputHandler(term.fd)
             self._rec = Records(self._render.menu_height)
-            # Generator(Adapter()).data
             self._start_game()
 
     def _start_game(self):

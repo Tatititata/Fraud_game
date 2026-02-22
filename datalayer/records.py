@@ -1,4 +1,5 @@
 from json import dump, load
+from common.constants import STATISTICS
 class Records:
     def __init__(self, size):
         self._file = 'records.json'
@@ -10,7 +11,8 @@ class Records:
                 data = load(file)
         except:
             data = []
-        data.append(model.stats)
+        stats = model.stats
+        data.append({i: stats.get(i) for i in STATISTICS[:10]})
         with open(self._file, 'w') as file:
             dump(data, file, indent=2)
 
@@ -18,7 +20,7 @@ class Records:
     def data(self):
         try:
             with open(self._file) as file:
-                data = sorted(load(file), key=lambda x: x['treasure'], reverse=True)[:self._size]
+                data = sorted(load(file), key=lambda x: x['treasure'], reverse=True)[:self._size]                
                 return [(d['treasure'], d['level_reached']) for d in data]
         except Exception as e:
             with open('log.txt', 'a') as f:

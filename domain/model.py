@@ -4,7 +4,7 @@ from common.playground import *
 from .entity import Entity, Player, Item
 from random import randint, choice
 from .navigator import Navigator
-from .monsters import Zombie, Snake, Ogre, Vampire, Ghost, Monster
+from .monsters import Zombie, Snake, Ogre, Vampire, Ghost, Mimic
 from .dungeon import Room, Corridor
 import sys
 
@@ -49,7 +49,7 @@ class Model:
         
     def _monsters_from_dict(self, data:list):
         for m in data:
-            monster = self.MONSTERS_DICT[m['id']]()
+            monster = self.MONSTERS_DICT.get(m['id'], Mimic)()
             monster.set_features(m, self._nav)
             self._monsters[monster.pos] = monster
 
@@ -71,7 +71,11 @@ class Model:
         pos = (new_y, new_x)
         if pos in self._monsters:
             monster = self._monsters[pos]
-            self._player.attack(monster)
+            if isinstance(monster, Mimic):
+                monster.activate()
+                monster.attack(self._player)
+            else:
+                self._player.attack(monster)
             if monster.health <= 0:
                 self._statistics["monsters_killed"] += 1
                 self._statistics["treasure"] += monster.drop_treasure()

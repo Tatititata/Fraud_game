@@ -1,7 +1,7 @@
 from common.characters import *
 from .entity import Character
 from .navigator import Navigator
-from random import randint
+from random import randint, choice
 from globals.globals import global_counter
 import sys
 
@@ -39,7 +39,6 @@ class Monster(Character):
     def move(self, player):
         pos = self._path_to_player(player)
         if pos:
-            
             if pos != player.pos and self._nav.valid_for_monsters(pos):
                 self.pos = pos
             else:
@@ -200,14 +199,41 @@ class Zombie(Monster):
     def __init__(self, pos=None, r=None):
         super().__init__(ZOMBIE, pos, r)
 
+class Mimic(Monster):
+# - Добавь в игру противника Мимик (белая m), который имитирует предметы. 
+# Высокая ловкость, низкая сила, высокое здоровье и низкая враждебность. 
+    MIN_health = 8
+    MAX_health = 12
+    MIN_strength = 2
+    MAX_strength = 3
+    MIN_dexterity = 7
+    MAX_dexterity = 8
+    MIN_hostility = 3
+    MAX_hostility = 4
 
+    def __init__(self, pos=None, r=None):
+        char = choice(ITEMS)
+        self._active = False
+        super().__init__(char, pos, r)
+        
+    def activate(self):
+        self._active = True
+        self.id = MIMIC
+        
+    def move(self, player):
+        if not self._active:
+            return
+        super().move(player)
 
+    def _patrol(self):
+        if not self._active:
+            return
+        super()._patrol()
 
-
-
-
-
-
+    def to_dict(self):
+        d = super().to_dict()
+        d['_active'] = self._active
+        return d
 
 
 

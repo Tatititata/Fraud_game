@@ -27,7 +27,8 @@ class Render:
         POTION : '\033[1;37m!\033[0m',
         SCROLL : '\033[1;37m?\033[0m',
         WEAPON : '\033[1;37m)\033[0m',
-        FLOOR : '\033[2m·\033[0m'
+        FLOOR : '\033[2m·\033[0m',
+        MIMIC : '\033[1;37mM\033[0m',
         }
     
     _positions = dict(zip(FULL_BACKPACK, range(len(FULL_BACKPACK))))

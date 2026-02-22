@@ -4,7 +4,7 @@ from common.constants import *
 from common.characters import MONSTERS, ITEMS, WEAPON
 # from common.playground import *
 from .dungeon import Room, Corridor
-from .monsters import Zombie, Snake, Ogre, Vampire, Ghost
+from .monsters import Zombie, Snake, Ogre, Vampire, Ghost, Mimic
 from .entity import Player, Item
 import sys
 
@@ -487,7 +487,7 @@ class Generator:
     def _place_items(self):
         for c in self._corridors:
             self._matrix.update(c.walls)
-        return
+        # return
         items = dict(zip(ITEMS, 
             (
                 max(round(5 * (self._k_items_quantity) * self._level), 1),      # food
@@ -521,7 +521,7 @@ class Generator:
         
     def _place_monsters(self, start):
         self._monsters = set()
-        return
+        # return
         rooms = {start,}
         quantity = round(randint(3, 5) * self._k_monsters_quantity)
         with open('adapter.txt', 'a') as f:
@@ -541,6 +541,16 @@ class Generator:
                     rooms = {start,}
                 pos = self._get_pos(r)
                 monster = self.MONSTERS_DICT[m](pos, r)
+                monster.set_init_values(self._k_monster_strength)
+                self._monsters.add(monster)
+                f.write(f'generator monster -> {monster}\n')
+            if randint(1, 2):
+                rooms = {start,}
+                r = randint(0, ROOMS - 1)
+                while r in rooms:
+                    r = randint(0, ROOMS - 1)
+                pos = self._get_pos(r)
+                monster = Mimic(pos, r)
                 monster.set_init_values(self._k_monster_strength)
                 self._monsters.add(monster)
                 f.write(f'generator monster -> {monster}\n')

@@ -35,13 +35,39 @@ class Generator:
                 self._rooms = [Room((i, *r)) for i, r in enumerate(self._generate_rooms_full_random())]
 
                 # no corridors yet:
-                edges, start, end = self._connect_rooms()
+                edges = self._connect_rooms()
                 success = self._create_corridors(edges)
+                
+                # self._create_connections()
+                # for k, v in self._connections.items():
+                #     print(f'{k} -> {v}')
+                # print(f'{self._corridors}')
                 self._update_corridors()
-                self._create_matrix(start)          
-                self._place_monsters(start)
+                # print()
+                # for k, v in self._connections.items():
+                #     print(f'{k} -> {v}')
+                # print(f'{self._corridors}')
+                self._create_adj()
+                for k, v in self._adj.items():
+                    print(f'{k} -> {v}')
+                print(f'{self._corridors}')
+                self._start = self._most_distant_points()
+                self._end = self._most_distant_points(self._start)
+                start_room = self._find_room_num(self._start)
+                end_room = self._find_room_num(self._end)
+
+                print(f'start = {start_room}, end = {end_room}')
+                path = self._find_path(start_room, end_room)
+
+                keys = self._place_keys(start_room, path)
+                for k, v in keys.items():
+                    print(f'{k} -> {v}')
+
+
+                self._create_matrix(start_room)       
+                self._place_monsters(start_room)
                 self._player = player  
-                self._place_player_and_exit(start, end)
+                self._place_player_and_exit(self._start, self._end)
                 self._place_items()
 
             except Exception as e:
@@ -53,9 +79,95 @@ class Generator:
                 success = False
             if len(exceptions) > 2:
                 raise AttributeError(exceptions)
+        with open('layout.txt', 'w') as f:
+            f.write(self.__repr__())
         
+    def _find_room_num(self, pos):
+        for i, r in enumerate(self._rooms):
+            if pos in r.floor:
+                return i
+
+    def _most_distant_points(self, pos=None):
+        self._matrix = {pos for r in self._rooms for pos in r.floor}
+        for c in self._corridors:
+            self._matrix.update(c.walls)
+        if pos:
+            self._matrix.remove(pos)
+        else:
+            pos = self._matrix.pop()
+        d = {}
+        s = [pos]
+        count = 0
+        while s:
+            new_s = []
+            count += 1
+            for pos in s:
+                d[pos] = count
+                for dy, dx in ((1, 0), (0, 1), (-1, 0), (0, -1)):
+                    new_pos = (pos[0] + dy, pos[1] + dx)
+                    if new_pos in self._matrix:
+                        new_s.append(new_pos)
+                        self._matrix.remove(new_pos)
+            s = new_s
+        pos = max(d, key=d.get)
+        self._matrix = set(d.keys())
+        return pos
+
+    # def _create_connections(self):
+    #     self._connections = {}
+    #     for c in self._corridors:
+    #         r1, r2 = c.connecting
+    #         distance = len(c.walls)
+    #         self._connections[(r1, r2)] = (distance, c)
+    #         self._connections[(r2, r1)] = (distance, c)
+    def _place_keys(self, start, path:list):
+        keys = {start: None}
+        opened_rooms = {start,}
+        for room in path:
+            available_rooms = self._adj[room]
+            for r in available_rooms:
+                if r not in opened_rooms:
+                    if randint(0, 1):
+                        k = choice(list(opened_rooms))
+                        keys[r] = k
+                    else:
+                        keys[r] = None
+                    opened_rooms.add(r)
+        return keys
+
+
+    def _create_adj(self):
+        self._adj = {}
+        for c in self._corridors:
+            c = c.connecting
+            for r in c:
+                self._adj.setdefault(r, set()).update(c)
+        for k, v in self._adj.items():
+            v.remove(k)
+
+    def _find_path(self, end, start):
+        path = [None] * ROOMS
+        s =  [start]
+        path[start] = start
+        while s:
+            new_s = []
+            for r in s:
+                if r == end:
+                    res = [end]
+                    while r != start:
+                        r = path[r]
+                        res.append(r)
+                        # r = path[r]
+                    print(res)
+                    return res
+                for room in self._adj.get(r):
+                    if path[room] is None:
+                        path[room] = r
+                        new_s.append(room)
+            s = new_s
 
     def _update_corridors(self):
+        # print(self._corridors)
         indexes = set()
         for i in range(len(self._corridors)):
             if i not in indexes:
@@ -68,6 +180,7 @@ class Generator:
                             ci.add_walls(cj.walls)
                             indexes.add(j)
         self._corridors = [c for i, c in enumerate(self._corridors) if i not in indexes]
+        # print(self._corridors)
 
     def _generate_rooms_full_random(self) -> list:
         rooms = []
@@ -145,7 +258,7 @@ class Generator:
                 graph.append((abs(y1 - y2) + abs(x1 - x2), i, j))
         
         graph.sort()
-        start, end = graph[-1][1], graph[-1][-1] # 2 rooms with longest edge, tmp value
+        # start, end = graph[-1][1], graph[-1][-1] # 2 rooms with longest edge, tmp value
         edges = []
         vertex = [{i,} for i in range(ROOMS)]
         graph = iter(graph)
@@ -162,7 +275,8 @@ class Generator:
                 edges.append((i, j))
         # with open ('generator.txt', 'a') as f:
         #     f.write(f'_connect_rooms {edges}\n')
-        return edges, start, end
+        # print(edges)
+        return edges
     
     def _bottom_left_corner_connection_(self, r1:Room, r2:Room): # └ connection
         x = y = -1
@@ -418,6 +532,7 @@ class Generator:
                 r2.make_gate(r2.y, x)
                 c = Corridor((r1.y + r1.h - 1, x, r2.y, x, r1.id, r2.id))
                 self._corridors.append(c)
+                
 
             elif ver[0][1] + ver[1][1]:
                     # left-right connection
@@ -468,9 +583,9 @@ class Generator:
 
     def __repr__(self):
         from .layout import Layout
-        l = Layout().create_layout(self._rooms, self._corridors)
-        l[self._player.pos] = 's'
-        l[[i.pos for i in self._items if i.id == EXIT][0]] = 'e'
+        l = Layout().create_layout(self._rooms, self._corridors, True)
+        l[self._start] = '█'
+        l[self._end] = '█'
         layout = '\n'.join(f"{i:02}{''.join(l.get((i, j), ' ') for j in range(WIDTH))}"  for i in range(HEIGHT))
         s1 = '  ' + ''.join(str(i) + ' ' * 9 for i in range(10)) + '\n'
         s2 = '  ' + ''.join(str(i) for i in range(10)) * 10 + '\n'
@@ -480,15 +595,17 @@ class Generator:
     def _create_matrix(self, start):
         start_room = self._rooms[start]
         self._matrix = {pos for r in self._rooms for pos in r.floor if r != start_room}
+        # self._matrix = {pos for r in self._rooms for pos in r.floor}
+        # for c in self._corridors:
+        #     self._matrix.update(c.walls)
+
         
     def _place_player_and_exit(self, start, end):
-        self._matrix.update(self._rooms[start].floor)
         if self._player is None:
             self._player = Player()
-        self._player.pos = self._get_pos(start)
+        self._player.pos = start
         self._items = set()
-        pos = self._get_pos(end)
-        it = Item((EXIT, pos, 1))
+        it = Item((EXIT, end, 1))
         self._items.add(it)
 
     def _place_items(self):
@@ -538,6 +655,9 @@ class Generator:
         if quantity > len(monsters):
             for i in range(quantity - len(monsters)):
                 monsters.append(choice(monsters))
+
+        # monsters = []
+
         with open('adapter.txt', 'a') as f:
             for m in monsters:
                 r = randint(0, ROOMS - 1)
@@ -561,6 +681,7 @@ class Generator:
                 monster.set_init_values(self._k_monster_strength)
                 self._monsters.add(monster)
                 f.write(f'generator monster -> {monster}\n')
+        self._matrix.update(self._rooms[start].floor)
 
 
     @property
@@ -576,5 +697,6 @@ class Generator:
         return data
 
 if __name__ == '__main__':
+    # Generator()
     print(Generator())
 

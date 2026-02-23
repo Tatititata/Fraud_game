@@ -6,9 +6,13 @@ from common.playground import *
 class Layout:
 
     @staticmethod
-    def create_layout(rooms, corridors):
+    def create_layout(rooms, corridors, with_rooms=False):
         layout = {}
         for r in rooms:
+            if with_rooms:
+                char = str(r.id)
+                for y, x in r.floor:
+                    layout[(y, x)] = char
             for y, x in r.vertical_walls:
                 layout[(y, x)] = WALL_VER
             for y, x in r.horizontal_walls:

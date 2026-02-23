@@ -143,7 +143,7 @@ class Corridor:
         self._path.update(set((y2, j) for j in range(x1, x2 + 1)))
 
     def __repr__(self):
-        return repr({k: v for k, v in self.__dict__.items() if not k.startswith('__')})
+        # return repr({k: v for k, v in self.__dict__.items() if not k.startswith('__')})
         return str(self.connecting)
     
 

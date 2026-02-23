@@ -6,19 +6,19 @@ from common.characters import MONSTERS, ITEMS, WEAPON
 from .dungeon import Room, Corridor
 from .monsters import Zombie, Snake, Ogre, Vampire, Ghost, Mimic
 from .entity import Player, Item
-import sys
+
 
 
 class Generator:
     MONSTERS_DICT = dict(zip(MONSTERS, (Zombie, Vampire, Ghost, Ogre , Snake)))
 
-    def __init__(self, ad, player=None):
-        data = ad.data
-        self._k_monsters_quantity = data['K_monster_quantity']
-        self._k_monster_strength = data['K_monster_strength']
-        self._k_items_quantity = data['K_items_quantity']
-        self._k_items_power = data['K_items_power']
-        self._level = data['level_reached']
+    def __init__(self, ad=None, player=None):
+        data = ad.data if ad else {}
+        self._k_monsters_quantity = data.get('K_monster_quantity') or 1
+        self._k_monster_strength = data.get('K_monster_strength') or 1
+        self._k_items_quantity = data.get('K_items_quantity') or 1
+        self._k_items_power = data.get('K_items_power') or 1
+        self._level = data.get('level_reached') or 1
         self._matrix = None
         self._corridors = None
         self._rooms = None
@@ -467,8 +467,15 @@ class Generator:
         return True
 
     def __repr__(self):
-        s = '\r\n'.join(str(r) for r in self._rooms)
-        return f'{s}, \r\n{self._corridors}\r\n'
+        from .layout import Layout
+        l = Layout().create_layout(self._rooms, self._corridors)
+        l[self._player.pos] = 's'
+        l[[i.pos for i in self._items if i.id == EXIT][0]] = 'e'
+        layout = '\n'.join(f"{i:02}{''.join(l.get((i, j), ' ') for j in range(WIDTH))}"  for i in range(HEIGHT))
+        s1 = '  ' + ''.join(str(i) + ' ' * 9 for i in range(10)) + '\n'
+        s2 = '  ' + ''.join(str(i) for i in range(10)) * 10 + '\n'
+        # return
+        return s1 + s2 + layout
 
     def _create_matrix(self, start):
         start_room = self._rooms[start]
@@ -569,6 +576,5 @@ class Generator:
         return data
 
 if __name__ == '__main__':
-    l = Generator()
-    print(l)
-    print(*l.rooms, sep='\n')
+    print(Generator())
+

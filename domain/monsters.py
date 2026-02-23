@@ -27,8 +27,6 @@ class Monster(Character):
     def drop_treasure(self):
         return randint(1, self.hostility + self.strength + self.dexterity+ self.MAX_health)
 
-    def __repr__(self):
-        return f'({self.id}, {self.hostility}, {self.pos})'
 
     def _patrol(self):
         idx = randint(0, len(self._patrol_moves) - 1)
@@ -114,7 +112,7 @@ class Monster(Character):
                 d += 2*dx   
 
     def __repr__(self):
-        return repr({k: v for k, v in self.__dict__.items() if not k.startswith('__')})
+        return str(self.to_dict())
 
     def to_dict(self):
         return {
@@ -206,8 +204,10 @@ class Mimic(Monster):
     MAX_health = 12
     MIN_strength = 2
     MAX_strength = 3
+    # ловкость
     MIN_dexterity = 7
     MAX_dexterity = 8
+    # враждебность
     MIN_hostility = 3
     MAX_hostility = 4
 
@@ -235,5 +235,8 @@ class Mimic(Monster):
         d['_active'] = self._active
         return d
 
+    @property
+    def active(self):
+        return self._active
 
 

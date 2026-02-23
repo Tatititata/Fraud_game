@@ -6,6 +6,7 @@ from random import randint, choice
 from .navigator import Navigator
 from .monsters import Zombie, Snake, Ogre, Vampire, Ghost, Mimic
 from .dungeon import Room, Corridor
+from .layout import Layout
 import sys
 
 
@@ -29,14 +30,14 @@ class Model:
         self._nav = Navigator(self)
         self._visible = set()
         self._matrix = None
-        self._layout = {}
+        
         self._monsters = {}
         self._items = {}
         self._rooms = [Room(r) for r in data['rooms']]
         self._corridors = [Corridor(c) for c in data['corridors']]
         self._player = Player(data.get('player'), self._nav)
         self._create_matrix()
-        self._create_layout()
+        self._layout = Layout().create_layout(self._rooms, self._corridors)
 
         self._explored = {tuple(i) for i in data.get('explored', set())}
         self._monsters_from_dict(data['monsters'])
@@ -71,7 +72,7 @@ class Model:
         pos = (new_y, new_x)
         if pos in self._monsters:
             monster = self._monsters[pos]
-            if isinstance(monster, Mimic):
+            if isinstance(monster, Mimic) and not monster.active:
                 monster.activate()
                 monster.attack(self._player)
             else:
@@ -99,60 +100,6 @@ class Model:
         for i, r in enumerate(self._rooms):
             for floor in r.floor:
                 self._matrix[floor] = i
-        
-    def _create_layout(self):
-        for r in self._rooms:
-            for y, x in r.vertical_walls:
-                self._layout[(y, x)] = WALL_VER
-            for y, x in r.horizontal_walls:
-                self._layout[(y, x)] = WALL_HOR
-
-            y, x = r.blc
-            self._layout[(y, x)] = BLCR
-            y, x = r.tlc
-            self._layout[(y, x)] = TLCR
-            y, x = r.brc
-            self._layout[(y, x)] = BRCR
-            y, x = r.trc
-            self._layout[(y, x)] = TRCR
-        self._place_corridors()
-
-    def _place_corridors(self):
-        for corridor in self._corridors:
-            for (y, x) in corridor.walls:
-                if (y - 1, x) in corridor.walls:
-                    if (y + 1, x) in corridor.walls:
-                        if (y, x + 1) in corridor.walls: 
-                            if (y, x - 1) in corridor.walls: 
-                                self._layout[(y, x)] = '╋' #1
-                            else:
-                                self._layout[(y, x)] = '┣'#2
-                        elif (y, x - 1)  in corridor.walls: 
-                            self._layout[(y, x)] = '┫'
-                        else:
-                            self._layout[(y, x)] = '┃'
-                    else:
-                        if (y, x + 1) in corridor.walls: 
-                            if (y, x - 1) in corridor.walls: 
-                                self._layout[(y, x)] = '┻'
-                            else:
-                                self._layout[(y, x)] = '┗'
-                        elif (y, x - 1) in corridor.walls: 
-                            self._layout[(y, x)] = '┛'
-                        else:
-                            self._layout[(y, x)] = '┃'
-                elif (y + 1, x) in corridor.walls:
-                        if (y, x + 1) in corridor.walls: 
-                            if (y, x - 1) in corridor.walls: 
-                                self._layout[(y, x)] = '┳'
-                            else:
-                                self._layout[(y, x)] = '┏'
-                        elif (y, x - 1) in corridor.walls: 
-                            self._layout[(y, x)] = '┓'
-                        else:
-                            self._layout[(y, x)] = '┃'
-                else:
-                    self._layout[(y, x)] = '━'
 
     def _handle_monsters(self):
         for m in list(self._monsters.values()):

@@ -128,21 +128,6 @@ class Item(Entity):
         id, pos, k = data
         super().__init__(id, pos) 
 
-        # if self.id == WEAPON:
-        #     self.type = choice(['spear', 'sword', 'knife'])
-        #     self.power = randint(1 + level // 3, 5 + level // 2)
-        # elif self.id == FOOD:
-        #     self.type = choice(['bread', 'honey', 'steak', 'water'])
-        #     self.power = randint(3, 8) + level // 2
-        # elif self.id == POTION: # tempopary
-        #     self.type = choice(['strength', 'dexterity', 'max_health'])
-        #     self.power = randint(1, 3) + level // 4
-        #     self.duration = 15 + level * 2
-        # elif self.id == SCROLL: # permanent
-        #     self.type = choice(['strength', 'dexterity', 'max_health'])
-        #     self.power = randint(1, 2) + level // 5
-
-
         if self.id == WEAPON:
             self.type = choice(['spear', 'sword', 'knife'])
             self.power = randint(2, 5) + round(k)
@@ -156,7 +141,6 @@ class Item(Entity):
         elif self.id == SCROLL:
             self.type = choice(['strength', 'dexterity', 'max_health'])
             self.power = round(randint(1, 2) * k)
-
 
 
     def to_dict(self):
@@ -179,13 +163,16 @@ class Character(Entity):
         self.health = 20
 
     def attack(self, target):
+        
+            
         random_value = randint(1, self.dexterity + target.dexterity)
+
         if random_value <= self.dexterity:
             damage = self.strength - target.strength
             damage = 1 if damage < 1 else damage
             target.health -= damage
             self._nav.add_statistics('hits_taken')
-            self._nav.add_statistics('health_used', -damage)
+            self._nav.add_statistics('health_used', damage)
             
         
 class Player(Character):
@@ -213,11 +200,16 @@ class Player(Character):
 
     def attack(self, target):
         random_value = randint(1, self.dexterity + target.dexterity)
+
+        with open('monsters_attack.txt', 'a') as f:
+            f.write(f'{target.id}, random value={random_value}, self.dex={self.dexterity}, target.health={target.health}\n')
+
         if random_value <= self.dexterity:
             damage = self.strength + self.current_weapon.power - target.strength
             damage = 1 if damage < 1 else damage
             target.health -= damage
             self._nav.add_statistics('hits_dealt')
+            
 
     def to_dict(self):
         d = {

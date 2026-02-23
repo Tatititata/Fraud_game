@@ -544,7 +544,7 @@ class Generator:
                 monster.set_init_values(self._k_monster_strength)
                 self._monsters.add(monster)
                 f.write(f'generator monster -> {monster}\n')
-            if randint(1, 2):
+            if randint(0, 1):
                 rooms = {start,}
                 r = randint(0, ROOMS - 1)
                 while r in rooms:

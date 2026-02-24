@@ -11,12 +11,13 @@ MONSTERS = (ZOMBIE, VAMPIRE, GHOST, OGRE, SNAKE)
 # gamestate
 GAMEOVER = 0
 NORMAL = 1
-# also gamestate
+# also gamestates:
 TREASURE = '*'
 FOOD = '%'
 POTION = '!'
 SCROLL = '?'
 WEAPON = ')'
+KEY = '&'
 
 CAPACITY = 9
 

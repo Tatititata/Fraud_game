@@ -34,6 +34,30 @@ import copy
 # - Если игрок находится в области, когда монстр должен начать его преследовать, 
 # но при этом не существует пути к нему, то монстр продолжает двигаться случайным образом по своему паттерну.
 
+class Color:
+    _keys = [
+
+    '\033[1;37m',
+    '\033[1;31m',  # красный
+    '\033[1;32m',  # зеленый
+    '\033[1;33m',  # желтый
+    '\033[1;34m',  # синий
+    '\033[1;35m',  # пурпурный
+    '\033[1;36m',  # голубой
+    '\033[1;91m',  # ярко-красный
+    '\033[1;92m',  # ярко-зеленый
+    '\033[1;93m',  # ярко-желтый
+    '\033[1;94m',  # ярко-синий
+    '\033[1;95m',  # ярко-пурпурный
+    '\033[1;96m' # ярко-голубой
+    ]
+    _index = 0
+
+    def __new__(cls):
+        color = cls._keys[cls._index]
+        cls._index = (cls._index + 1) % len(cls._keys)
+        return color
+
 class Backpack:
 
     def __init__(self, data=None):
@@ -93,7 +117,7 @@ class Backpack:
 class Entity:
     def __init__(self, id=None, pos=None):
         self.id = id
-        self._pos = pos
+        self.pos = pos
 
     @property
     def pos(self):
@@ -105,6 +129,47 @@ class Entity:
             self._pos = tuple(pos)
         else:
             self._pos = pos
+
+class Key(Entity):
+
+    # _keys = [
+
+    # '\033[1;37m',
+    # '\033[1;31m',  # красный
+    # '\033[1;32m',  # зеленый
+    # '\033[1;33m',  # желтый
+    # '\033[1;34m',  # синий
+    # '\033[1;35m',  # пурпурный
+    # '\033[1;36m',  # голубой
+    # '\033[1;91m',  # ярко-красный
+    # '\033[1;92m',  # ярко-зеленый
+    # '\033[1;93m',  # ярко-желтый
+    # '\033[1;94m',  # ярко-синий
+    # '\033[1;95m',  # ярко-пурпурный
+    # '\033[1;96m' # ярко-голубой
+    # ]
+    # _count = 0
+
+    def __init__(self, data, pos=None):
+        if isinstance(data, set):
+            super().__init__(KEY, pos)
+            self.color = Color()
+            self.doors = data
+        elif isinstance(data, dict):
+            super().__init__(KEY, data.get('pos'))
+            self.color = data.get('color')
+            self.doors = {tuple(d) for d in data.get('doors')}
+
+    @property
+    def full_id(self):
+        return self.color + self.id + '\033[0m'
+
+    def to_dict(self):
+        return {'color': self.color, 'pos': list(self.pos), 'doors': [list(d) for d in self.doors]}
+
+    def __repr__(self):
+
+        return f'pos={self.pos}'
 
 
 class Item(Entity):

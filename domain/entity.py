@@ -37,7 +37,7 @@ import copy
 class Color:
     _keys = [
 
-    '\033[1;37m',
+    # '\033[1;37m',
     '\033[1;31m',  # красный
     '\033[1;32m',  # зеленый
     '\033[1;33m',  # желтый
@@ -130,6 +130,9 @@ class Entity:
         else:
             self._pos = pos
 
+    def to_dict(self):
+        return {'pos': self._pos, 'id': self.id}
+
 class Key(Entity):
 
     # _keys = [
@@ -151,25 +154,27 @@ class Key(Entity):
     # _count = 0
 
     def __init__(self, data, pos=None):
-        if isinstance(data, set):
+        if isinstance(data, tuple):
             super().__init__(KEY, pos)
             self.color = Color()
-            self.doors = data
+            id, pos = data
+            self.door = Entity(id, pos)
         elif isinstance(data, dict):
             super().__init__(KEY, data.get('pos'))
             self.color = data.get('color')
-            self.doors = {tuple(d) for d in data.get('doors')}
+            pos = data.get('door').get('pos')
+            id = data.get('door').get('id')
+            self.door = Entity(id, pos)
 
     @property
     def full_id(self):
         return self.color + self.id + '\033[0m'
 
     def to_dict(self):
-        return {'color': self.color, 'pos': list(self.pos), 'doors': [list(d) for d in self.doors]}
+        return {'color': self.color, 'pos': list(self.pos), 'door': self.door.to_dict()}
 
     def __repr__(self):
-
-        return f'pos={self.pos}'
+        return f'pos={self.pos}, door={self.door}'
 
 
 class Item(Entity):
@@ -228,16 +233,16 @@ class Character(Entity):
         self.health = 20
 
     def attack(self, target):
-        
-            
         random_value = randint(1, self.dexterity + target.dexterity)
-
         if random_value <= self.dexterity:
             damage = self.strength - target.strength
             damage = 1 if damage < 1 else damage
             target.health -= damage
             self._nav.add_statistics('hits_taken')
             self._nav.add_statistics('health_used', damage)
+            self._nav.add_danger(f'{self.id} hit you!')
+        else:
+            self._nav.add_danger(f'{self.id} tried to hit you and missed!')
             
         
 class Player(Character):
@@ -265,15 +270,20 @@ class Player(Character):
 
     def attack(self, target):
         random_value = randint(1, self.dexterity + target.dexterity)
-
         with open('monsters_attack.txt', 'a') as f:
             f.write(f'{target.id}, random value={random_value}, self.dex={self.dexterity}, target.health={target.health}\n')
-
         if random_value <= self.dexterity:
             damage = self.strength + self.current_weapon.power - target.strength
             damage = 1 if damage < 1 else damage
             target.health -= damage
             self._nav.add_statistics('hits_dealt')
+            if target.health > 0:
+                self._nav.add_danger(f'You hit {target.id} with damage {damage}! {target.id} health is now {target.health}.')
+            else:
+                self._nav.add_danger(f'You killed {target.id}!')
+        else:
+            self._nav.add_danger(f'You tried to hit {target.id} and missed!')
+
             
 
     def to_dict(self):

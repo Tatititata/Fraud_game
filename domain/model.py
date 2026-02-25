@@ -17,14 +17,17 @@ class Model:
 
     def __init__(self, data, statistics=None):
         data = data.data
-        if statistics or data.get('statistics'):
-            statistics = statistics or data.get('statistics')
+        if statistics: # continue to play
             self._statistics = {k: v for k, v in statistics.items()}
             self._statistics["monsters_killed"] = 0
-        else:
+            self._statistics['path_length'] = data['path_length']
+        elif data.get('statistics') is not None: # saved game
+            self._statistics = {k: v for k, v in data.get('statistics').items()}
+        else: # new game
             self._statistics = {k: 0 for k in STATISTICS}
             self._statistics['level_reached'] = 1
-            self._statistics['path_length'] = data.get('path_length')
+            self._statistics['path_length'] = data['path_length']
+
         self.passed = False
         self._gamestate = NORMAL
         self._nav = Navigator(self)
@@ -32,13 +35,12 @@ class Model:
         self._matrix = None
         self._rooms = [Room(r) for r in data['rooms']]
         self._corridors = [Corridor(c) for c in data['corridors']]
-        self._player = Player(data.get('player'), self._nav)
-        self._keys = [Key(k) for k in data.get('keys')]
-        self._keys = {k.pos: k for k in self._keys}
-        self._create_matrix()
         self._layout = Layout().create_layout(self._rooms, self._corridors)
-
         self._explored = {tuple(i) for i in data.get('explored', set())}
+        self._player = Player(data.get('player'), self._nav)
+
+        self._keys_from_dict(data.get('keys'))
+        self._create_matrix()
         self._monsters_from_dict(data['monsters'])
         self._items_from_dict(data['items'])
         
@@ -46,6 +48,7 @@ class Model:
             self._visited = [i for i in data['visited']]
         else:
             self._visited = [0] * ROOMS
+        self._danger = []
         
     def _monsters_from_dict(self, data:list):
         self._monsters = {}
@@ -53,6 +56,12 @@ class Model:
             monster = self.MONSTERS_DICT.get(m['id'], Mimic)()
             monster.set_features(m, self._nav)
             self._monsters[monster.pos] = monster
+
+    def _keys_from_dict(self, data:list):
+        self._keys = {}
+        for d in data:
+            key = Key(d)
+            self._keys[key.pos] = key
 
     def _items_from_dict(self, data:list):
         self._items = {}
@@ -100,14 +109,13 @@ class Model:
 
     def _create_matrix(self):
         self._matrix = {pos: ROOMS + i for i, c in enumerate(self._corridors) for pos in c.walls}
-        for i, r in enumerate(self._rooms):
+        for r in self._rooms:
             for floor in r.floor:
-                self._matrix[floor] = i
+                self._matrix[floor] = r.id
         self._doors = set()
         for k in self._keys.values():
-            self._doors.update(k.doors)
-        for d in self._doors:
-            del self._matrix[d]
+            self._doors.add(k.door.pos)
+            del self._matrix[k.door.pos]
 
     def _handle_monsters(self):
         for m in list(self._monsters.values()):
@@ -122,17 +130,16 @@ class Model:
     def _update_keys(self, pos):
         key = self._keys[pos]
         del self._keys[pos]
-        for pos in key.doors:
-            self._add_pos_to_matrix(pos)
-            self._doors.remove(pos)
+        self._matrix[key.door.pos] = key.door.id
+        self._doors.remove(key.door.pos)
 
-    def _add_pos_to_matrix(self, pos):
-        for dy, dx in ((1, 0), (0, 1), (-1, 0), (0, -1)):
-            new_pos = (pos[0] + dy, pos[1] + dx)
-            value = self._matrix.get(new_pos)
-            if value:
-                self._matrix[pos] = value
-                return
+
+    # def _add_pos_to_matrix(self, pos):
+    #     for dy, dx in ((1, 0), (0, 1), (-1, 0), (0, -1)):
+    #         new_pos = (pos[0] + dy, pos[1] + dx)
+    #         value = self._matrix.get(new_pos)
+    #         if value and value >= ROOMS:
+    #             return value
 
 
     def _update_visible(self, visible):
@@ -194,17 +201,16 @@ class Model:
             if pos in visible:
                 res[pos] = self._items[pos].id
 
+        for k in self._keys.values():        
+            if k.pos in visible:
+                res[k.pos] = k.full_id
+            if k.door.pos in visible:
+                res[k.door.pos] = k.color + 'x' + '\033[0m'
+
         for m in self._monsters.values():
             if m.pos in visible:
                 res[m.pos] = m.id
                 
-        for k in self._keys.values():        
-            if k.pos in visible:
-                res[k.pos] = k.full_id
-            for pos in k.doors:
-                if pos in visible:
-                    res[pos] = k.color + 'x' + '\033[0m'
-
         res[self._player.pos] = self._player.id
 
         return res
@@ -271,6 +277,13 @@ class Model:
     def stats(self):
         return self._statistics
     
+    def add_danger(self, s):
+        return self._danger.append(s)
+
+    @property
+    def danger(self):
+        return self._danger
+
     @property
     def full_statistics(self):
         d = self.stats

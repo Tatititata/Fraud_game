@@ -53,13 +53,15 @@ class Render:
     def render(self, model):
         gamestate = model.gamestate
         backpack = model.backpack
-        
-        if self._old_gamestate != gamestate:
-            self._clear_backpack_menu()
-            self._old_gamestate = gamestate
+        self._clear_backpack_menu()
+        # if self._old_gamestate != gamestate:
+        #     self._clear_backpack_menu()
+        #     self._old_gamestate = gamestate
         if isinstance(backpack, set):
             self.restore_backpack = backpack - self.restore_backpack
             self._render_backpack(INFO_MENU_POS_Y + 2, INFO_MENU_POS_X + 18)
+            if model.danger:
+                self._show_danger(model.danger)
             if gamestate == GAMEOVER:
                 self.show_gameover_menu()
                 return
@@ -77,6 +79,13 @@ class Render:
             self._render_weapon_menu()
 
         self._out.flush()
+
+    def _show_danger(self, danger):
+        # self._clear_backpack_menu()
+        y, x = INFO_MENU_POS_Y + INFO_MENU_HEIGHT, INFO_MENU_POS_X
+        for d in danger:
+            self._out.write(f'\033[{SHIFT + y};{x+SHIFT}H{d}')
+            y += 1
 
     def show_game_menu(self):
         self._draw_rectangle(INFO_MENU_POS_Y, INFO_MENU_POS_X, INFO_MENU_HEIGHT, INFO_MENU_WIDTH)
@@ -138,7 +147,7 @@ class Render:
 
     def show_save_game_menu(self):
         self.clear_game_field()
-        self._clear_backpack_menu()
+        # self._clear_backpack_menu()
         self._out.write(f'\033[6;3Hto save the game')
         self._out.write(f'\033[7;3Hpress \'s\' key')
         self._out.flush()

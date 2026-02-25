@@ -24,3 +24,6 @@ class Navigator:
     def valid_for_monsters(self, pos):
         return self._model.valid_for_monsters(pos)
     
+    def add_danger(self, s):
+        return self._model.add_danger(s)
+    

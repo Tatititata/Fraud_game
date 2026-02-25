@@ -37,7 +37,9 @@ class Monster(Character):
     def move(self, player):
         pos = self._path_to_player(player)
         if pos:
+            
             if pos != player.pos and self._nav.valid_for_monsters(pos):
+                self._nav.add_danger(f'{self.id} sees you! {self.id} health is {self.health}.')
                 self.pos = pos
             else:
                 self.attack(player)

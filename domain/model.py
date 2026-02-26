@@ -12,7 +12,7 @@ import sys
 
 class Model:
 
-    BACKPACK_SHOW_MENU = {'j': FOOD, 'h': WEAPON, 'e': SCROLL, 'k':POTION}
+    BACKPACK_SHOW_MENU = {'j': FOOD, 'h': WEAPON, 'u': SCROLL, 'k':POTION, 'm': KEY}
     MONSTERS_DICT = dict(zip(MONSTERS, (Zombie, Vampire, Ghost, Ogre , Snake)))
 
     def __init__(self, data, statistics=None):
@@ -39,7 +39,6 @@ class Model:
         self._explored = {tuple(i) for i in data.get('explored', set())}
         self._player = Player(data.get('player'), self._nav)
 
-        self._keys_from_dict(data.get('keys'))
         self._create_matrix()
         self._monsters_from_dict(data['monsters'])
         self._items_from_dict(data['items'])
@@ -57,31 +56,43 @@ class Model:
             monster.set_features(m, self._nav)
             self._monsters[monster.pos] = monster
 
-    def _keys_from_dict(self, data:list):
-        self._keys = {}
-        for d in data:
-            key = Key(d)
-            self._keys[key.pos] = key
-
     def _items_from_dict(self, data:list):
         self._items = {}
+        self._doors = {}
         for d in data:
             item = Item(d)
             self._items[item.pos] = item
+            if item.id == KEY:
+                self._doors[item.door.pos] = item.color
+                del self._matrix[item.door.pos]
       
+    def update(self, char):
+        self._danger = []
+        if self._gamestate == NORMAL:
+            if char in 'wasd':
+                self._move_player(char)
+                self._handle_monsters()
+            elif char in 'hjkum':
+                self._gamestate = self.BACKPACK_SHOW_MENU[char]
+            # else:
+            #     self._handle_monsters()
+        else:
+            if self._player.use_backpack(self._gamestate, char):
+                self._handle_monsters()
+            self._gamestate = NORMAL
+        if self._player.health <= 0:
+            self._gamestate = GAMEOVER
+
     def _move_player(self, char):
-        new_y, new_x = self._player.pos
+        y, x = self._player.pos
         if char == 'w':
-            new_y -= 1
+            pos = (y - 1, x)
         elif char == 'a':
-            new_x -= 1
+            pos = (y, x - 1)
         elif char == 's':
-            new_y += 1
-        elif char == 'd':
-            new_x += 1
-        pos = (new_y, new_x)
-        if pos in self._keys:
-            self._update_keys(pos)
+            pos = (y + 1, x)
+        else: # char == 'd':
+            pos = (y, x + 1)
         if pos in self._monsters:
             monster = self._monsters[pos]
             if isinstance(monster, Mimic) and not monster.active:
@@ -103,6 +114,8 @@ class Model:
                     self._player.pos = pos
                     del self._items[pos]
                     self._statistics["steps"] += 1
+        elif pos in self._doors:
+            self.add_danger('You need to open the door')
         elif pos in self._matrix:
             self._player.pos = pos
             self._statistics["steps"] += 1
@@ -112,10 +125,7 @@ class Model:
         for r in self._rooms:
             for floor in r.floor:
                 self._matrix[floor] = r.id
-        self._doors = set()
-        for k in self._keys.values():
-            self._doors.add(k.door.pos)
-            del self._matrix[k.door.pos]
+            
 
     def _handle_monsters(self):
         for m in list(self._monsters.values()):
@@ -127,20 +137,12 @@ class Model:
         # self._monsters = {m.pos: m for m in self._monsters.values()}
         self._player.update()
 
-    def _update_keys(self, pos):
-        key = self._keys[pos]
-        del self._keys[pos]
-        self._matrix[key.door.pos] = key.door.id
-        self._doors.remove(key.door.pos)
-
-
-    # def _add_pos_to_matrix(self, pos):
-    #     for dy, dx in ((1, 0), (0, 1), (-1, 0), (0, -1)):
-    #         new_pos = (pos[0] + dy, pos[1] + dx)
-    #         value = self._matrix.get(new_pos)
-    #         if value and value >= ROOMS:
-    #             return value
-
+    def open_door(self, key):
+        if key.door.pos in self._doors:
+            del self._doors[key.door.pos]
+            self._matrix[key.door.pos] = key.door.id
+        else:
+            self.add_danger('You need key for the door!')
 
     def _update_visible(self, visible):
         y, x = self._player.pos
@@ -199,13 +201,14 @@ class Model:
 
         for pos in self._items:
             if pos in visible:
-                res[pos] = self._items[pos].id
-
-        for k in self._keys.values():        
-            if k.pos in visible:
-                res[k.pos] = k.full_id
-            if k.door.pos in visible:
-                res[k.door.pos] = k.color + 'x' + '\033[0m'
+                item = self._items[pos]
+                if item.id == KEY:
+                    res[pos] = item.color + item.id + '\033[0m'
+                else:
+                    res[pos] = item.id
+        for pos in self._doors:
+            if pos in visible:
+                res[pos] = self._doors[pos] + 'x' + '\033[0m'
 
         for m in self._monsters.values():
             if m.pos in visible:
@@ -243,6 +246,10 @@ class Model:
                 (TREASURE, self._statistics['treasure']), 
                 })
             return res
+        
+        if self._gamestate == KEY:
+            return [d.color + d.id + '\033[0m' for d in self._player.backpack.have.get(KEY)]
+        
         res = []
         for d in self._player.backpack.have.get(self.gamestate):
             d = sorted(d.to_dict().items(), key=lambda x: len(x[0]), reverse=True)
@@ -301,30 +308,14 @@ class Model:
     def add_statistics(self, key:str, value:int=1):
         self._statistics[key] += value
 
-    def update(self, char):
-        self._danger = []
-        if self._gamestate == NORMAL:
-            if char in 'wasd':
-                self._move_player(char)
-                self._handle_monsters()
-            elif char in 'hjke':
-                self._gamestate = self.BACKPACK_SHOW_MENU[char]
-        else:
-            if self._player.use_backpack(self._gamestate, char):
-                self._handle_monsters()
-            self._gamestate = NORMAL
-        if self._player.health <= 0:
-            self._gamestate = GAMEOVER
-
-        # with open('player.txt', 'w') as f:
-        #     f.write(f'bp\n{self._player.__dict__}\n')
-        #     f.write(f'pl\n{self._player.to_dict()}\n')
+    def rotate(self, direction):
+        self._player.facing += direction
 
 
     def data_for_saving(self):
         data = {}
         data['player'] = self._player.to_dict()
-        data['keys'] = [k.to_dict() for k in self._keys.values()]
+        # data['keys'] = [k.to_dict() for k in self._keys.values()]
         data['monsters'] = [m.to_dict() for m in self._monsters.values()]
         data['items'] = [item.to_dict() for item in self._items.values()]
         data['rooms'] = [r.to_dict() for r in self._rooms ]

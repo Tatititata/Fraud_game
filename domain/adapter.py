@@ -91,8 +91,8 @@ class Adapter:
             self.K_items_power.append(k)
         
         if m_left == 0:
-            self.K_items_quantity[-1] /= 1.2
-            self.K_items_power[-1] /= 1.2
+            self.K_items_quantity[-1] *= 1.2
+            self.K_items_power[-1] *= 1.2
             self.K_monster_strength[-1] *= 1.2
             self.K_monster_quantity[-1] *= 1.2
 

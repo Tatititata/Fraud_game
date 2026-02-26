@@ -5,7 +5,7 @@ from common.constants import *
 
 SHIFT = 1
 INFO_MENU_WIDTH = 25
-INFO_MENU_HEIGHT = 13
+INFO_MENU_HEIGHT = 14
 INFO_MENU_POS_Y = 0
 INFO_MENU_POS_X = 100
 
@@ -117,6 +117,12 @@ class Render:
         self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
         self._out.write('=== WEAPON ==='.center(INFO_MENU_WIDTH * 2 - 2))
 
+    def _render_key_menu(self):
+        y = INFO_MENU_POS_Y + INFO_MENU_HEIGHT + 1
+        x = 101
+        self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
+        self._out.write('=== KEY ==='.center(INFO_MENU_WIDTH * 2 - 2))
+
     def _render_backpack_details(self, backpack):
         y = INFO_MENU_POS_Y + INFO_MENU_HEIGHT + 2
         x = 101
@@ -145,17 +151,17 @@ class Render:
         self._out.write(f'\033[5;5HPress any key to start new game')
         self._out.flush()
 
-    def show_save_game_menu(self):
-        self.clear_game_field()
-        # self._clear_backpack_menu()
-        self._out.write(f'\033[6;3Hto save the game')
-        self._out.write(f'\033[7;3Hpress \'s\' key')
-        self._out.flush()
+    # def show_save_game_menu(self):
+    #     self.clear_game_field()
+    #     # self._clear_backpack_menu()
+    #     self._out.write(f'\033[6;3Hto save the game')
+    #     self._out.write(f'\033[7;3Hpress \'s\' key')
+    #     self._out.flush()
 
     def show_start_game_menu(self):
         self.clear_game_field()
         self._out.write(f'\033[3;5HPress \'l\' to load saved game.')
-        self._out.write(f'\033[4;5HPress \'q\' to quit.')
+        self._out.write(f'\033[4;5HPress \'esc\' to quit.')
         self._out.write(f'\033[5;5HPress any other key to start new game.')
         self._out.flush()
 
@@ -203,7 +209,7 @@ class Render:
         self._out.write('potion (k) ----- ')
         y += 1
         self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
-        self._out.write('scroll (e) ----- ')
+        self._out.write('scroll (u) ----- ')
         y += 1
         self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
         self._out.write('weapon (h) ----- ')
@@ -212,7 +218,7 @@ class Render:
         self._out.write('current weapon - ')
         y += 1
         self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
-        self._out.write('dexterity------ ')
+        self._out.write('dexterity ------ ')
         y += 1
         self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
         self._out.write('strength ------- ')
@@ -222,6 +228,9 @@ class Render:
         y += 1
         self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
         self._out.write('max health ----- ')
+        y += 1
+        self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
+        self._out.write('keys (m) ------- ')
         y += 1
         self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
         self._out.write('treasure ------- ')

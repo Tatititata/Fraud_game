@@ -27,3 +27,6 @@ class Navigator:
     def add_danger(self, s):
         return self._model.add_danger(s)
     
+    def open_door(self, key):
+        return self._model.open_door(key)
+    

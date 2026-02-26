@@ -2,11 +2,13 @@
 from domain.generator import Generator
 from domain.model import Model
 from core.render import Render
+from core.raycasting import RayCasting
 from core.terminal import Terminal
 from core.input import InputHandler
 from datalayer.records import Records
 from datalayer.loader import Loader, Saver
 from domain.adapter import Adapter
+from common.keymap import *
 import sys
 
 
@@ -28,7 +30,7 @@ class Rouge:
         while True:
             self._render.show_start_game_menu()
             ch = self._user_input.getchar()
-            if ch == 'q':
+            if ch == ESC:
                 return
             self._game_loop(ch)
 
@@ -49,20 +51,16 @@ class Rouge:
         self._render.render_first_screen(model)
 
         while model.gamestate: # >0
-
             ch = self._user_input.getchar()
-            if ch == 'q':
+            if ch == ESC:
                 self._render.show_gameover_menu()
                 return Saver().save(model)
             model.update(ch)
-
             if model.passed:
-
                 if model.level >= 20:
                     Saver().remove_saved_model()
                     self._render.show_win_screen()
                     return self._user_input.getchar()
-                
                 Saver().save(model)
                 ad.update(model)
                 self._rec.add_new_record(model)
@@ -70,7 +68,6 @@ class Rouge:
                 self._render.clear_game_field()    
                 self._render.show_level(model.level)
                 self._render.show_records(self._rec.data)
-
             self._render.render(model)                
         else:
             self._rec.add_new_record(model)

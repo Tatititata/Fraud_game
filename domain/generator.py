@@ -1,7 +1,7 @@
 from random import randint, choice
 import traceback
 from common.constants import *
-from common.characters import MONSTERS, ITEMS, WEAPON
+from common.characters import MONSTERS, ITEMS, WEAPON, KEY
 # from common.playground import *
 from .dungeon import Room, Corridor
 from .monsters import Zombie, Snake, Ogre, Vampire, Ghost, Mimic
@@ -65,7 +65,6 @@ class Generator:
                 raise AttributeError(exceptions)
         with open('layout.txt', 'w') as f:
             f.write(f'{self.__repr__()}\n')
-            f.write(f'{self._keys}\n')
             f.write('rooms\n')
             for r in self._rooms:
                 f.write(f'{r}\n')
@@ -155,27 +154,6 @@ class Generator:
             v.remove(k)
         return adj
 
-    # def _find_path(self, adj):
-    #     start = self._matrix[self._start]
-    #     end = self._matrix[self._end]
-    #     path = [None] * ROOMS
-    #     s =  [start]
-    #     path[start] = start
-    #     while s:
-    #         new_s = []
-    #         for r in s:
-    #             if r == end:
-    #                 res = [end]
-    #                 while r != start:
-    #                     r = path[r]
-    #                     res.append(r)
-    #                 print(f'find_path={res}')
-    #                 return res
-    #             for room in adj.get(r):
-    #                 if path[room] is None:
-    #                     path[room] = r
-    #                     new_s.append(room)
-    #         s = new_s
 
     def _update_corridors(self):
         # print(self._corridors)
@@ -597,10 +575,12 @@ class Generator:
         l = Layout().create_layout(self._rooms, self._corridors, with_rooms=False)
         l[self._start] = '@'
         l[self._end] = '█'
-        for i, key in enumerate(self._keys, 1):
-            l[key.pos] = str(i)
-            l[key.door.pos] = str(i)
-
+        for i in self._items:
+            if i.id == KEY:
+                l[i.pos] = i.color + i.id + '\033[0m'
+                l[i.door.pos] = i.color + 'x' + '\033[0m'
+            else:
+                l[i.pos] = i.id
         layout = '\n'.join(f"{i:02}{''.join(l.get((i, j), ' ') for j in range(WIDTH))}"  for i in range(HEIGHT))
         s1 = '  ' + ''.join(str(i) + ' ' * 9 for i in range(10)) + '\n'
         s2 = '  ' + ''.join(str(i) for i in range(10)) * 10 + '\n'
@@ -619,8 +599,6 @@ class Generator:
         #     print(f'room={r.id} gate in matrix={r.gate & set(self._matrix.keys())}')
         #     print(f'room={r.id} gate in corrid={r.gate & corr}')
 
-
-
     def _place_keys(self, keys):
         self._keys = set()
         for room_with_keys, closed_rooms in keys.items():
@@ -628,7 +606,7 @@ class Generator:
                 pos = self._get_pos(room_with_keys)
                 lock_pos = self._find_door_to_close(pos, room)
                 lock_id = self._matrix[lock_pos]
-                self._keys.add(Key((lock_id, lock_pos), pos))
+                self._items.add(Item((KEY, pos, (lock_id, lock_pos))))
 
     def _find_door_to_close(self, pos, room):
         gates = self._rooms[room].gate
@@ -650,6 +628,7 @@ class Generator:
         if self._player is None:
             self._player = Player()
         self._player.pos = self._start
+        self._player.backpack.have[KEY] = []
         self._items = set()
         it = Item((EXIT, self._end, 1))
         self._items.add(it)
@@ -663,7 +642,6 @@ class Generator:
                 max(round(3 * (self._k_items_quantity)), 1),      # potion
                 max(round(2 * (self._k_items_quantity)), 1)      # scroll
             )))
-
 
         for item, quantity in items.items():
             with open('adapter.txt', 'a') as f:
@@ -723,8 +701,6 @@ class Generator:
             self._monsters.add(monster)
         self._matrix.update(self._rooms[start].floor)
 
-
-
     @property
     def data(self):
         data = {}
@@ -733,7 +709,6 @@ class Generator:
         data['items'] = [item.to_dict() for item in self._items]
         data['rooms'] = [r.to_dict() for r in self._rooms ]
         data['corridors'] = [r.to_dict() for r in self._corridors ]
-        data['keys'] = [k.to_dict() for k in self._keys]
         data['path_length'] = self._path 
         with open ('generator.txt', 'w') as f:
             for k, v in data.items():
@@ -742,6 +717,6 @@ class Generator:
         return data
 
 if __name__ == '__main__':
-    Generator()
-    # print(Generator())
+    # Generator()
+    print(Generator())
 

@@ -44,7 +44,7 @@ class Color:
     '\033[1;34m',  # синий
     '\033[1;35m',  # пурпурный
     '\033[1;36m',  # голубой
-    '\033[1;91m',  # ярко-красный
+    # '\033[1;91m',  # ярко-красный
     '\033[1;92m',  # ярко-зеленый
     '\033[1;93m',  # ярко-желтый
     '\033[1;94m',  # ярко-синий
@@ -133,49 +133,6 @@ class Entity:
     def to_dict(self):
         return {'pos': self._pos, 'id': self.id}
 
-class Key(Entity):
-
-    # _keys = [
-
-    # '\033[1;37m',
-    # '\033[1;31m',  # красный
-    # '\033[1;32m',  # зеленый
-    # '\033[1;33m',  # желтый
-    # '\033[1;34m',  # синий
-    # '\033[1;35m',  # пурпурный
-    # '\033[1;36m',  # голубой
-    # '\033[1;91m',  # ярко-красный
-    # '\033[1;92m',  # ярко-зеленый
-    # '\033[1;93m',  # ярко-желтый
-    # '\033[1;94m',  # ярко-синий
-    # '\033[1;95m',  # ярко-пурпурный
-    # '\033[1;96m' # ярко-голубой
-    # ]
-    # _count = 0
-
-    def __init__(self, data, pos=None):
-        if isinstance(data, tuple):
-            super().__init__(KEY, pos)
-            self.color = Color()
-            id, pos = data
-            self.door = Entity(id, pos)
-        elif isinstance(data, dict):
-            super().__init__(KEY, data.get('pos'))
-            self.color = data.get('color')
-            pos = data.get('door').get('pos')
-            id = data.get('door').get('id')
-            self.door = Entity(id, pos)
-
-    @property
-    def full_id(self):
-        return self.color + self.id + '\033[0m'
-
-    def to_dict(self):
-        return {'color': self.color, 'pos': list(self.pos), 'door': self.door.to_dict()}
-
-    def __repr__(self):
-        return f'pos={self.pos}, door={self.door}'
-
 
 class Item(Entity):
     def __init__(self, data):
@@ -188,11 +145,15 @@ class Item(Entity):
             raise TypeError(f"{self.__class__.__name__}._init_ {type(data)}, {data}")
 
     def _init_from_dict(self, data:dict):
-        if 'id' in data:
+        if data.get('id'):
             for k, v in data.items():
                 setattr(self, k, v)
         else:
-            raise AttributeError(f"{self.__class__.__name__}._init_from_dict")
+            super().__init__(KEY, data.get('pos'))
+            self.color = data.get('color')
+            pos = data.get('door').get('pos')
+            id = data.get('door').get('id')
+            self.door = Entity(id, pos)
 
     def _init_new_item(self, data):
         id, pos, k = data
@@ -211,17 +172,21 @@ class Item(Entity):
         elif self.id == SCROLL:
             self.type = choice(['strength', 'dexterity', 'max_health'])
             self.power = round(randint(1, 2) * k)
+        elif self.id == KEY:
+            self.color = Color()
+            id, pos = k
+            self.door = Entity(id, pos)
 
 
     def to_dict(self):
+        if self.id == KEY:
+            return {'color': self.color, 'pos': list(self.pos), 'door': self.door.to_dict()}
         d = {k: v for k, v in self.__dict__.items() if not k.startswith('_')}
         d['pos'] = [*self.pos]
         return d
         
     def __repr__(self):
         return str(self.__dict__)
-
-
 
 
 class Character(Entity):
@@ -253,6 +218,7 @@ class Player(Character):
         self._free_hands = Item((WEAPON, (0,0), 1))
         self._free_hands.power = 0
         self.current_weapon = self._free_hands
+        self.facing = 0
 
         if data is None:
             self.max_health = 20
@@ -267,6 +233,7 @@ class Player(Character):
         self.backpack = Backpack(data.get('backpack'))
         self.current_weapon = Item(data.get('current_weapon'))
         self._permanent_items = {(i, j):k for i, j, k in data.get('_permanent_items')}
+        self.facing = data.get('facing', 0)
 
     def attack(self, target):
         random_value = randint(1, self.dexterity + target.dexterity)
@@ -283,9 +250,7 @@ class Player(Character):
                 self._nav.add_danger(f'You killed {target.id}!')
         else:
             self._nav.add_danger(f'You tried to hit {target.id} and missed!')
-
-            
-
+         
     def to_dict(self):
         d = {
         'pos': self.pos, 
@@ -295,7 +260,8 @@ class Player(Character):
         'current_weapon': self.current_weapon.to_dict(), 
         'max_health': self.max_health, 
         'backpack': self.backpack.to_dict(),
-        '_permanent_items': [[*k, v] for k, v in self._permanent_items.items()]
+        '_permanent_items': [[*k, v] for k, v in self._permanent_items.items()],
+        'facing': self.facing
     }
         return d
 
@@ -334,6 +300,9 @@ class Player(Character):
             self._use_potion(item)
         elif gamestate == SCROLL:
             self._use_scroll(item, 'scrolls_read')
+        elif gamestate == KEY:
+            self._nav.open_door(item)
+            return False # ??? may be true???
         else:
             self._use_weapon(item)
         return True

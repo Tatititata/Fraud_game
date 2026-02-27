@@ -5,7 +5,7 @@ from common.characters import MONSTERS, ITEMS, WEAPON, KEY
 # from common.playground import *
 from .dungeon import Room, Corridor
 from .monsters import Zombie, Snake, Ogre, Vampire, Ghost, Mimic
-from .entity import Player, Item, Key
+from .entity import Player, Item
 
 
 

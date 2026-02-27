@@ -1,13 +1,13 @@
 from common.constants import *
 from common.characters import *
 from common.playground import *
-from .entity import Entity, Player, Item, Key
-from random import randint, choice
+from .entity import Entity, Player, Item
+# from random import randint, choice
 from .navigator import Navigator
 from .monsters import Zombie, Snake, Ogre, Vampire, Ghost, Mimic
 from .dungeon import Room, Corridor
 from .layout import Layout
-import sys
+# import sys
 
 
 class Model:
@@ -126,7 +126,6 @@ class Model:
             for floor in r.floor:
                 self._matrix[floor] = r.id
             
-
     def _handle_monsters(self):
         for m in list(self._monsters.values()):
             old_pos = m.pos
@@ -260,7 +259,6 @@ class Model:
     def room_number(self, pos):
         return self._matrix.get(pos)
 
-    # - Оружие при смене должно падать на пол на соседнюю клетку. Если свободных нет = уничтожаем.
     def place_weapon(self, pos, weapon):
         for y, x in ((1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1), (1, -1), (-1, -1)):
             new_pos = (pos[0] + y, pos[1] + x)
@@ -310,7 +308,6 @@ class Model:
 
     def rotate(self, direction):
         self._player.facing += direction
-
 
     def data_for_saving(self):
         data = {}

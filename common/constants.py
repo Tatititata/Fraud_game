@@ -26,6 +26,10 @@ MAX_ROOM_AREA = MAX_ROOM_WIDTH * MAX_ROOM_HEIGHT
 
 WIDTH = 100
 HEIGHT = 50
+
+
+
+
 STATISTICS = ("treasure",
               "level_reached",
               "monsters_killed",

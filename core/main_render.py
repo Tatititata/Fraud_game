@@ -103,6 +103,11 @@ class MainRender:
         self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
         self._out.write('treasure ------- ')
 
+    def clear_game_field(self):
+        for y in range(HEIGHT - 2):
+            for x in range(WIDTH - 2):
+                self._out.write(f'\033[{y + SHIFT + 1};{x + SHIFT + 1}H{GROUND}')
+
     @property
     def out(self):
         return self._out

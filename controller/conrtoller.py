@@ -1,7 +1,7 @@
 
 from domain.generator import Generator
 from domain.model import Model
-from core.render import MainRender
+from core.main_render import MainRender
 from core.flat_render import FlatRender
 from core.raycasting import RayCasting
 from core.terminal import Terminal
@@ -73,6 +73,7 @@ class Rouge:
                 ad.update(model)
                 self._rec.add_new_record(model)
                 model = Model(Generator(ad, model.player), model.stats) 
+                render = renders[mode](self._main_render.out, model)
                 self._main_render.clear_game_field()    
                 self._main_render.show_level(model.level)
                 self._main_render.show_records(self._rec.data)

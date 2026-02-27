@@ -129,11 +129,6 @@ class FlatRender:
         for k, v in self.restore_backpack:
             self._out.write(f"\033[{y+SHIFT + self._positions[k]};{x+SHIFT}H{v:4d}")
 
-    # def clear_game_field(self):
-    #     for y in range(HEIGHT - 2):
-    #         for x in range(WIDTH - 2):
-    #             self._out.write(f'\033[{y + SHIFT + 1};{x + SHIFT + 1}H{GROUND}')
-
     @property
     def menu_height(self):
         return INFO_MENU_HEIGHT - 4

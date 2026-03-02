@@ -218,7 +218,7 @@ class Player(Character):
         self._free_hands = Item((WEAPON, (0,0), 1))
         self._free_hands.power = 0
         self.current_weapon = self._free_hands
-        self.facing = 0
+        self.angle = -1/2
 
         if data is None:
             self.max_health = 20
@@ -237,8 +237,6 @@ class Player(Character):
 
     def attack(self, target):
         random_value = randint(1, self.dexterity + target.dexterity)
-        with open('monsters_attack.txt', 'a') as f:
-            f.write(f'{target.id}, random value={random_value}, self.dex={self.dexterity}, target.health={target.health}\n')
         if random_value <= self.dexterity:
             damage = self.strength + self.current_weapon.power - target.strength
             damage = 1 if damage < 1 else damage
@@ -261,7 +259,7 @@ class Player(Character):
         'max_health': self.max_health, 
         'backpack': self.backpack.to_dict(),
         '_permanent_items': [[*k, v] for k, v in self._permanent_items.items()],
-        'facing': self.facing
+        'angle': self.angle
     }
         return d
 
@@ -280,6 +278,8 @@ class Player(Character):
         self.current_weapon = self._free_hands
 
     def use_backpack(self, gamestate, idx):
+        if not isinstance(idx, str):
+            return False
         idx = ord(idx) - 49 # idx = digit 1-10
         backpack = self.backpack.have.get(gamestate)
 
@@ -287,7 +287,7 @@ class Player(Character):
             return self._place_current_weapon()
         
         if not backpack: 
-            return True
+            return False
         
         if not (0 <= idx < len(backpack)):
             return False

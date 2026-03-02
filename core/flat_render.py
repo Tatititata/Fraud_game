@@ -29,14 +29,10 @@ class FlatRender:
         self._out = out
         self._model = model
         self.restore_backpack = set()
-
-    def render_first_screen(self):
-        backpack = self._model.backpack
-        self.restore_backpack = backpack - self.restore_backpack
-        self._render_backpack(INFO_MENU_POS_Y + 2, INFO_MENU_POS_X + 18)
+        Draw().clear_game_field(self._out, HEIGHT, WIDTH)
         self._render_game(self._model.first_screen)
-        self._out.flush()
-
+        self.update()
+        
     def update(self):
         gamestate = self._model.gamestate
         backpack = self._model.backpack

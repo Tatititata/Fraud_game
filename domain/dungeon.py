@@ -93,6 +93,7 @@ class Room:
         return repr({k: v for k, v in self.__dict__.items() if not k.startswith('_')})
         return f"[y={self.y}, x={self.x}, h={self.h}, w={self.w}, gate={repr(self.gate)}]"
     
+    
 
 class Corridor:
 

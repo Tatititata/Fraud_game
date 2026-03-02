@@ -1,9 +1,9 @@
 from json import dump, load
 from common.constants import STATISTICS
 class Records:
-    def __init__(self, size):
+    def __init__(self):
         self._file = 'records.json'
-        self._size = size
+        self._size = 20
 
     def add_new_record(self, model):
         try:

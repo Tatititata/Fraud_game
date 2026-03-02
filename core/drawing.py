@@ -17,3 +17,9 @@ class Draw:
         out.write(BLCR)
         out.write(WALL_HOR * (w - 2))
         out.write(BRCR)
+
+    @staticmethod
+    def clear_game_field(out, h, w):
+        for y in range(h - 2):
+            s = GROUND * (w - 2)
+            out.write(f'\033[{y + SHIFT + 1};{SHIFT + 1}H{s}')

@@ -2,7 +2,6 @@ from random import randint, choice
 import traceback
 from common.constants import *
 from common.characters import MONSTERS, ITEMS, WEAPON, KEY
-# from common.playground import *
 from .dungeon import Room, Corridor
 from .monsters import Zombie, Snake, Ogre, Vampire, Ghost, Mimic
 from .entity import Player, Item
@@ -50,6 +49,7 @@ class Generator:
                 keys = self._closed_rooms(d[randint(0, 1)](adj))
                 
                 self._player = player  
+                self._items = set()
                 self._place_player_and_exit()
                 self._place_keys(keys)
                 self._place_monsters(start)
@@ -63,7 +63,7 @@ class Generator:
                 success = False
             if len(exceptions) > 2:
                 raise AttributeError(exceptions)
-        with open('layout.txt', 'w') as f:
+        with open('layout.txt', 'a') as f:
             f.write(f'{self.__repr__()}\n')
             f.write('rooms\n')
             for r in self._rooms:
@@ -573,7 +573,7 @@ class Generator:
     def __repr__(self):
         from .layout import Layout
         l = Layout().create_layout(self._rooms, self._corridors, with_rooms=False)
-        l[self._start] = '@'
+        l[self._player.pos] = '@'
         l[self._end] = '█'
         for i in self._items:
             if i.id == KEY:
@@ -600,7 +600,7 @@ class Generator:
         #     print(f'room={r.id} gate in corrid={r.gate & corr}')
 
     def _place_keys(self, keys):
-        self._keys = set()
+        return
         for room_with_keys, closed_rooms in keys.items():
             for room in closed_rooms:
                 pos = self._get_pos(room_with_keys)
@@ -629,13 +629,14 @@ class Generator:
             self._player = Player()
         self._player.pos = self._start
         self._player.backpack.have[KEY] = []
-        self._items = set()
+        
         it = Item((EXIT, self._end, 1))
         self._items.add(it)
         del self._matrix[self._start]
         del self._matrix[self._end]
 
     def _place_items(self):
+        return
         items = dict(zip(ITEMS, 
             (
                 max(round(5 * (self._k_items_quantity)), 1),      # food
@@ -667,6 +668,7 @@ class Generator:
         
     def _place_monsters(self, start):
         self._monsters = set()
+        return
         rooms = {start,}
         quantity = round(randint(3, 5) * self._k_monsters_quantity)
         with open('adapter.txt', 'a') as f:
@@ -710,10 +712,10 @@ class Generator:
         data['rooms'] = [r.to_dict() for r in self._rooms ]
         data['corridors'] = [r.to_dict() for r in self._corridors ]
         data['path_length'] = self._path 
-        with open ('generator.txt', 'w') as f:
-            for k, v in data.items():
-                f.write(f'{k}\n')
-                f.write(f'{v}\n')
+        # with open ('generator.txt', 'w') as f:
+        #     for k, v in data.items():
+        #         f.write(f'{k}\n')
+        #         f.write(f'{v}\n')
         return data
 
 if __name__ == '__main__':

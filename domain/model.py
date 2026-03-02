@@ -1,13 +1,14 @@
 from common.constants import *
 from common.characters import *
 from common.playground import *
+from common.keymap import Command
 from .entity import Entity, Player, Item
-# from random import randint, choice
 from .navigator import Navigator
 from .monsters import Zombie, Snake, Ogre, Vampire, Ghost, Mimic
 from .dungeon import Room, Corridor
 from .layout import Layout
-# import sys
+from common.keymap import Command
+from math import sin, cos, pi
 
 
 class Model:
@@ -31,23 +32,23 @@ class Model:
         self.passed = False
         self._gamestate = NORMAL
         self._nav = Navigator(self)
-        self._visible = set()
+        
         self._matrix = None
         self._rooms = [Room(r) for r in data['rooms']]
         self._corridors = [Corridor(c) for c in data['corridors']]
         self._layout = Layout().create_layout(self._rooms, self._corridors)
-        self._explored = {tuple(i) for i in data.get('explored', set())}
+        
         self._player = Player(data.get('player'), self._nav)
 
         self._create_matrix()
         self._monsters_from_dict(data['monsters'])
         self._items_from_dict(data['items'])
         
-        if data.get('visited'):
-            self._visited = [i for i in data['visited']]
-        else:
-            self._visited = [0] * ROOMS
+        self._visited = [i for i in data.get('visited', [0] * (ROOMS))]
+        self._explored = {tuple(i) for i in data.get('explored', set())}
+        self._visible = set()
         self._danger = []
+        self._update_render_data()
         
     def _monsters_from_dict(self, data:list):
         self._monsters = {}
@@ -66,33 +67,54 @@ class Model:
                 self._doors[item.door.pos] = item.color
                 del self._matrix[item.door.pos]
       
-    def update(self, char):
+    def update(self, command):
         self._danger = []
         if self._gamestate == NORMAL:
-            if char in 'wasd':
-                self._move_player(char)
-                self._handle_monsters()
-            elif char in 'hjkum':
-                self._gamestate = self.BACKPACK_SHOW_MENU[char]
-            # else:
-            #     self._handle_monsters()
+            if isinstance(command, Command):
+                if command == Command.CHANGE_RENDER:
+                    self._player.angle = -1/2
+                    return
+                self._move_player(command)
+                self._handle_monsters()          
+            elif command in 'hjkum':
+                self._gamestate = self.BACKPACK_SHOW_MENU[command]
+            else:
+                return      
         else:
-            if self._player.use_backpack(self._gamestate, char):
+            if self._player.use_backpack(self._gamestate, command):
                 self._handle_monsters()
             self._gamestate = NORMAL
         if self._player.health <= 0:
             self._gamestate = GAMEOVER
-
-    def _move_player(self, char):
-        y, x = self._player.pos
-        if char == 'w':
-            pos = (y - 1, x)
-        elif char == 'a':
-            pos = (y, x - 1)
-        elif char == 's':
-            pos = (y + 1, x)
-        else: # char == 'd':
-            pos = (y, x + 1)
+            return
+        
+    def _get_pos(self, command):
+        angle_delta = 1/16
+        if command == Command.ROTATE_LEFT:
+            self._player.angle -= angle_delta
+            return self._player.pos
+        elif command == Command.ROTATE_RIGHT:
+            self._player.angle += angle_delta
+            return self._player.pos
+        else:
+            y, x = self._player.pos
+            if command == Command.MOVE_LEFT:
+                return y, x - 1
+            elif command == Command.MOVE_RIGHT:
+                return y, x + 1
+            else:
+                angle = (self._player.angle + 0.0001) * pi
+                s = round(sin(angle))
+                c = round(cos(angle))
+                if command == Command.MOVE_FORWARD:
+                    return y + s, x + c
+                elif command == Command.MOVE_BACK:
+                    return y - s, x - c
+            
+    def _move_player(self, command):
+        pos = self._get_pos(command)
+        if pos == self._player.pos:
+            return
         if pos in self._monsters:
             monster = self._monsters[pos]
             if isinstance(monster, Mimic) and not monster.active:
@@ -125,6 +147,8 @@ class Model:
         for r in self._rooms:
             for floor in r.floor:
                 self._matrix[floor] = r.id
+            for g in r.gate:
+                self._matrix[g] = r.id
             
     def _handle_monsters(self):
         for m in list(self._monsters.values()):
@@ -133,8 +157,8 @@ class Model:
             if m.pos != old_pos:
                 self._monsters[m.pos] = m
                 del self._monsters[old_pos]
-        # self._monsters = {m.pos: m for m in self._monsters.values()}
         self._player.update()
+        self._update_render_data()
 
     def open_door(self, key):
         if key.door.pos in self._doors:
@@ -161,61 +185,57 @@ class Model:
 
     @property
     def first_screen(self):
-        res = {pos: self._layout.get(pos, GROUND) for pos in self._explored}
+        res = {pos: self._layout[pos] for pos in self._explored}
         for i in range(ROOMS):
             if self._visited[i]:
                 for pos in self._rooms[i].walls:
-                    res[pos] = self._layout.get(pos, GROUND)
-        res.update(self.data_for_rendering)
+                    res[pos] = self._layout[pos]
         return res
 
     @property
     def data_for_rendering(self):
-        res = {}
+        return self._res
+
+    def _update_render_data(self):
+        self._res = {}
         idx = self._matrix[self._player.pos] #the room player in
         visible = set()
-        if idx >= ROOMS:
-            pos = self._player.pos
-            for i in self._corridors[idx - ROOMS].connecting:
-                if pos in self._rooms[i].gate:
-                    idx = i
         if idx < ROOMS:
             r = self._rooms[idx]
             if not self._visited[idx]:
                 self._visited[idx] = 1
                 for pos in r.walls:
-                    res[pos] = self._layout[pos]
+                    self._res[pos] = self._layout[pos]
             visible.update(r.floor)
             visible.update(r.gate)
           
         self._update_visible(visible)
 
         for pos in visible:
-            res[pos] = self._layout.get(pos, FLOOR)
+            self._res[pos] = self._layout.get(pos, FLOOR)
         
         self._visible -= visible
         for pos in self._visible:
-            res[pos] = self._layout.get(pos, GROUND)
+            self._res[pos] = self._layout.get(pos, GROUND)
         self._visible = visible
 
         for pos in self._items:
             if pos in visible:
                 item = self._items[pos]
                 if item.id == KEY:
-                    res[pos] = item.color + item.id + '\033[0m'
+                    self._res[pos] = item.color + item.id + '\033[0m'
                 else:
-                    res[pos] = item.id
+                    self._res[pos] = item.id
         for pos in self._doors:
             if pos in visible:
-                res[pos] = self._doors[pos] + 'x' + '\033[0m'
+                self._res[pos] = self._doors[pos] + 'x' + '\033[0m'
 
         for m in self._monsters.values():
             if m.pos in visible:
-                res[m.pos] = m.id
-                
-        res[self._player.pos] = self._player.id
+                self._res[m.pos] = m.id
 
-        return res
+        self._res[self._player.pos] = self._player.id
+
 
     def place_entity(self, pos, e:Entity):
         if self.walkable(pos):
@@ -311,21 +331,13 @@ class Model:
 
     def data_for_saving(self):
         data = {}
+        data['explored'] = [i for i in self._explored]
         data['player'] = self._player.to_dict()
-        # data['keys'] = [k.to_dict() for k in self._keys.values()]
         data['monsters'] = [m.to_dict() for m in self._monsters.values()]
         data['items'] = [item.to_dict() for item in self._items.values()]
         data['rooms'] = [r.to_dict() for r in self._rooms ]
         data['corridors'] = [r.to_dict() for r in self._corridors ]
-        data['visited'] = self._visited
-        data['explored'] = [i for i in self._explored]
+        data['visited'] = self._visited  
         data['statistics'] = self._statistics
-        return data
 
-        # with open('log.txt', 'w') as f:
-        #     f.write(f'items\n{self._items}\n')
-        #     f.write(f'monsters\n{self._monsters}')
-        #     f.write(f'visible\n{self._visible}\n')
-        #     f.write(f'visited\n{self._visited}\n')
-        #     f.write(f'explored\n{self._explored}\n')
-        #     f.write(f'backpack\n{self._player.backpack}\n')
+        return data

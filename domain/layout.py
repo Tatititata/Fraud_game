@@ -33,33 +33,33 @@ class Layout:
                     if (y + 1, x) in corridor.walls:
                         if (y, x + 1) in corridor.walls: 
                             if (y, x - 1) in corridor.walls: 
-                                layout[(y, x)] = '╋' #1
+                                layout[(y, x)] = H_V
                             else:
-                                layout[(y, x)] = '┣'#2
+                                layout[(y, x)] = V_R
                         elif (y, x - 1)  in corridor.walls: 
-                            layout[(y, x)] = '┫'
+                            layout[(y, x)] = V_L
                         else:
-                            layout[(y, x)] = '┃'
+                            layout[(y, x)] = V
                     else:
                         if (y, x + 1) in corridor.walls: 
                             if (y, x - 1) in corridor.walls: 
-                                layout[(y, x)] = '┻'
+                                layout[(y, x)] = H_T
                             else:
-                                layout[(y, x)] = '┗'
+                                layout[(y, x)] = BLC
                         elif (y, x - 1) in corridor.walls: 
-                            layout[(y, x)] = '┛'
+                            layout[(y, x)] = BRC
                         else:
-                            layout[(y, x)] = '┃'
+                            layout[(y, x)] = V
                 elif (y + 1, x) in corridor.walls:
                         if (y, x + 1) in corridor.walls: 
                             if (y, x - 1) in corridor.walls: 
-                                layout[(y, x)] = '┳'
+                                layout[(y, x)] = H_B
                             else:
-                                layout[(y, x)] = '┏'
+                                layout[(y, x)] = TLC
                         elif (y, x - 1) in corridor.walls: 
-                            layout[(y, x)] = '┓'
+                            layout[(y, x)] = TRC
                         else:
-                            layout[(y, x)] = '┃'
+                            layout[(y, x)] = V
                 else:
-                    layout[(y, x)] = '━'
+                    layout[(y, x)] = H
         return layout

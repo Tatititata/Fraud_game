@@ -9,9 +9,6 @@ class Loader:
     def data(self):
         with open(self._file) as file:
             data = load(file)
-            # with open('loader.txt', 'w') as f:
-            #     f.write(f'data\n{isinstance(data, dict)}\n')
-            #     f.write(f'data keys\n{data.keys()}\n')
             return data
 
 

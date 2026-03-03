@@ -25,7 +25,7 @@ class MainRender:
     def set_up(self, model):
         Draw().clear_game_field(self._out, HEIGHT, WIDTH)
         self._model = model
-        self._menu_render.set_up(model)
+        self._menu_render.set_up(self._model)
         self._render = self._renders[self._mode](self._out, model)
         self._show_level()
         self._out.flush()
@@ -63,6 +63,7 @@ class MainRender:
     def update(self):
         if self._model.gamestate:
             self._render.update()
+            self._menu_render.update()
         else:
             self.show_gameover_menu()
         self._out.flush()

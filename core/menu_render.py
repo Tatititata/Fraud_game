@@ -19,6 +19,7 @@ class MenuRender:
 
     def set_up(self, model):
         self._model = model
+        self._render_backpack(INFO_MENU_POS_Y + 2, INFO_MENU_POS_X + 18)
 
     def _show_game_menu(self):
         Draw().rectangle(self._out, INFO_MENU_POS_Y, INFO_MENU_POS_X, INFO_MENU_HEIGHT, INFO_MENU_WIDTH)
@@ -91,8 +92,10 @@ class MenuRender:
         gamestate = self._model.gamestate
         self._clear_backpack_menu()
         
+        
         if gamestate == NORMAL:
             self._show_danger()
+            self._render_backpack(INFO_MENU_POS_Y + 2, INFO_MENU_POS_X + 18)
             return
         self._render_backpack_details()
         if gamestate == FOOD:
@@ -105,6 +108,7 @@ class MenuRender:
             self._render_weapon_menu()
         elif gamestate == KEY:
             self._render_key_menu()
+
         
         
     def _show_danger(self):
@@ -170,8 +174,6 @@ class MenuRender:
         for i in range(y, y + BACKPACK_MENU_HEIGHT):
             self._out.write(f'\033[{SHIFT + i};{x+SHIFT}H\033[0K')
 
-
- 
     def _render_backpack(self, y, x):
         self._old_backpack = self._model.backpack - self._old_backpack
         for k, v in self._old_backpack:

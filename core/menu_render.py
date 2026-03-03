@@ -6,12 +6,19 @@ from .drawing import Draw
 
 
 class MenuRender:
+
+    _positions = dict(zip(FULL_BACKPACK, range(len(FULL_BACKPACK))))
+
     def __init__(self, out):
         self._out = out
         self._show_game_menu()
         self._show_record_menu()
         Draw().rectangle(self._out, INFO_MENU_POS_Y + INFO_MENU_HEIGHT + 12, INFO_MENU_POS_X, 
                          HEIGHT - INFO_MENU_HEIGHT - BACKPACK_MENU_HEIGHT, INFO_MENU_WIDTH * 2)
+        self._old_backpack = set()
+
+    def set_up(self, model):
+        self._model = model
 
     def _show_game_menu(self):
         Draw().rectangle(self._out, INFO_MENU_POS_Y, INFO_MENU_POS_X, INFO_MENU_HEIGHT, INFO_MENU_WIDTH)
@@ -79,3 +86,93 @@ class MenuRender:
         y += 1
         self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
         self._out.write('treasure ------- ')
+    
+    def update(self):
+        gamestate = self._model.gamestate
+        self._clear_backpack_menu()
+        
+        if gamestate == NORMAL:
+            self._show_danger()
+            return
+        self._render_backpack_details()
+        if gamestate == FOOD:
+            self._render_food_menu()
+        elif gamestate == POTION:
+            self._render_potion_menu()
+        elif gamestate == SCROLL:
+            self._render_scroll_menu()
+        elif gamestate == WEAPON:
+            self._render_weapon_menu()
+        elif gamestate == KEY:
+            self._render_key_menu()
+        
+        
+    def _show_danger(self):
+        if not self._model.danger:
+            return
+
+        y, x = INFO_MENU_POS_Y + INFO_MENU_HEIGHT, INFO_MENU_POS_X
+        danger = iter(self._model.danger)
+        d = next(danger, None)
+        while d and y < INFO_MENU_HEIGHT + BACKPACK_MENU_HEIGHT:
+            self._out.write(f'\033[{SHIFT + y};{x+SHIFT}H{d}')
+            d = next(danger, None)
+            y += 1
+
+    def _render_food_menu(self):
+        y = INFO_MENU_POS_Y + INFO_MENU_HEIGHT + 1
+        x = 101
+        self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
+        self._out.write('=== FOOD ==='.center(INFO_MENU_WIDTH * 2 - 2))
+        
+    def _render_potion_menu(self):
+        y = INFO_MENU_POS_Y + INFO_MENU_HEIGHT + 1
+        x = 101
+        self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
+        self._out.write('=== POTION ==='.center(INFO_MENU_WIDTH * 2 - 2))
+        
+    def _render_scroll_menu(self):
+        y = INFO_MENU_POS_Y + INFO_MENU_HEIGHT + 1
+        x = 101
+        self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
+        self._out.write('=== SCROLL ==='.center(INFO_MENU_WIDTH * 2 - 2))
+        
+    def _render_weapon_menu(self):
+        y = INFO_MENU_POS_Y + INFO_MENU_HEIGHT + 1
+        x = 101
+        self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
+        self._out.write('=== WEAPON ==='.center(INFO_MENU_WIDTH * 2 - 2))
+
+    def _render_key_menu(self):
+        y = INFO_MENU_POS_Y + INFO_MENU_HEIGHT + 1
+        x = 101
+        self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
+        self._out.write('=== KEY ==='.center(INFO_MENU_WIDTH * 2 - 2))
+
+    def _render_backpack_details(self):
+        # self._clear_backpack_menu()
+        y = INFO_MENU_POS_Y + INFO_MENU_HEIGHT + 2
+        x = 101
+        for i, el in enumerate(self._model.backpack, 1):
+            self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
+            self._out.write(f'{i}. {el}')
+            y += 1
+   
+        menu_height = y - INFO_MENU_POS_Y - INFO_MENU_HEIGHT + 1
+        Draw().rectangle(self._out, 
+                         INFO_MENU_POS_Y + INFO_MENU_HEIGHT, 
+                         INFO_MENU_POS_X, 
+                         menu_height, 
+                         INFO_MENU_WIDTH * 2)
+        
+    def _clear_backpack_menu(self):
+        y, x = INFO_MENU_POS_Y + INFO_MENU_HEIGHT, INFO_MENU_POS_X
+        for i in range(y, y + BACKPACK_MENU_HEIGHT):
+            self._out.write(f'\033[{SHIFT + i};{x+SHIFT}H\033[0K')
+
+
+ 
+    def _render_backpack(self, y, x):
+        self._old_backpack = self._model.backpack - self._old_backpack
+        for k, v in self._old_backpack:
+            self._out.write(f"\033[{y+SHIFT + self._positions[k]};{x+SHIFT}H{v:4d}")

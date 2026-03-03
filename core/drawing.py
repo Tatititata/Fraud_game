@@ -20,6 +20,14 @@ class Draw:
 
     @staticmethod
     def clear_game_field(out, h, w):
-        for y in range(h - 2):
             s = GROUND * (w - 2)
-            out.write(f'\033[{y + SHIFT + 1};{SHIFT + 1}H{s}')
+
+            for y in range(h - 2):
+                out.write(f'\033[{y + SHIFT + 1};{SHIFT + 1}H{s}')
+
+    # @staticmethod
+    # def clear_game_field(out, h, w):
+    #     # Очищаем только игровую область (например, со 2 по 49 строку, с 2 по 99 колонку)
+    #     for y in range(2, 49):  # строки, где есть игровое поле
+    #         out.write(f'\033[{y};2H')  # начало игровой области по X
+    #         out.write(' ' * 98)  # ширина игровой области

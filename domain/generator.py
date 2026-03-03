@@ -63,14 +63,14 @@ class Generator:
                 success = False
             if len(exceptions) > 2:
                 raise AttributeError(exceptions)
-        with open('layout.txt', 'a') as f:
-            f.write(f'{self.__repr__()}\n')
-            f.write('rooms\n')
-            for r in self._rooms:
-                f.write(f'{r}\n')
-            f.write(f'corridors\n')
-            for c in self._corridors:
-                f.write(f'{c}\n')
+        # with open('layout.txt', 'a') as f:
+        #     f.write(f'{self.__repr__()}\n')
+        #     f.write('rooms\n')
+        #     for r in self._rooms:
+        #         f.write(f'{r}\n')
+        #     f.write(f'corridors\n')
+        #     for c in self._corridors:
+        #         f.write(f'{c}\n')
         
 
     def _most_distant_points(self, pos=None):

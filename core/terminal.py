@@ -2,6 +2,7 @@ import tty
 import termios
 import sys
 
+
 class Terminal:
 
     def __init__(self):
@@ -9,6 +10,7 @@ class Terminal:
         self.original = termios.tcgetattr(self.fd)
     
     def __enter__(self):
+
         tty.setraw(self.fd)
         sys.stdout.write('\033[2J\033[H')
         sys.stdout.write('\033[?25l')  

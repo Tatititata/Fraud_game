@@ -1,5 +1,5 @@
 from controller.conrtoller import Rouge
-from domain.generator import Generator
+
 
 def main():
 

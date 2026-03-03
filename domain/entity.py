@@ -1,9 +1,7 @@
 from common.characters import *
 from .navigator import Navigator
 from random import randint, choice
-# from globals.globals import global_counter
-import sys
-import copy
+
 
 # - Персонаж:
 #   + максимальный уровень здоровья,

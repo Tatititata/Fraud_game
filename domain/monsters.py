@@ -1,9 +1,6 @@
 from common.characters import *
 from .entity import Character
-from .navigator import Navigator
 from random import randint, choice
-from globals.globals import global_counter
-import sys
 
 
 class Monster(Character):

@@ -18,17 +18,14 @@ class MainRender:
         self._mode = 0
         self._out = out
         Draw().rectangle(self._out, 0, 0, HEIGHT, WIDTH)
-        self._out.write('\033[?25l')  # hide cursor
         self._menu_render = MenuRender(self._out)
         self._show_start_game_menu()
-        # self._show_game_menu()
-        # self._show_record_menu()
-        
         self._out.flush()
 
     def set_up(self, model):
         Draw().clear_game_field(self._out, HEIGHT, WIDTH)
         self._model = model
+        self._menu_render.set_up(model)
         self._render = self._renders[self._mode](self._out, model)
         self._show_level()
         self._out.flush()
@@ -68,6 +65,7 @@ class MainRender:
             self._render.update()
         else:
             self.show_gameover_menu()
+        self._out.flush()
 
     @property
     def out(self):

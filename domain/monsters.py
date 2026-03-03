@@ -214,7 +214,7 @@ class Mimic(Monster):
     MAX_hostility = 4
 
     def __init__(self, pos=None, r=None):
-        char = choice(ITEMS)
+        char = choice([FOOD, POTION, SCROLL, WEAPON])
         self._active = False
         super().__init__(char, pos, r)
         

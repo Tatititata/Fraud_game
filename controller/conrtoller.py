@@ -37,11 +37,13 @@ class Rouge:
 
     def _game_loop(self, command):
 
-        mf = ModelFactory()
-        model = mf.new_model(command)
-        
+        factory = ModelFactory()
+        model, flag = factory.new_model(command)
+        if not flag:
+            self._render.show_can_not_load_game_screen()
+            self._user_input.getchar()
+    
         self._render.set_up(model)
-
 
         while model.gamestate: # >0
 
@@ -55,13 +57,15 @@ class Rouge:
             model.update(command)
 
             if model.passed:
+
                 if model.level >= 20:
                     Saver().remove_saved_model()
                     self._render.show_win_screen()
-                    return self._commander.update(self._user_input.getchar())
+                    return self._user_input.getchar()
+                
                 Saver().save(model)
                 Records().add_new_record(model)
-                model = mf.next_level(model)
+                model = factory.next_level(model)
                 self._render.set_up(model)
                 self._render.show_records(Records())
 

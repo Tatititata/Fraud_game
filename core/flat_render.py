@@ -63,8 +63,11 @@ class FlatRender:
 
     def _show_danger(self, danger):
         y, x = INFO_MENU_POS_Y + INFO_MENU_HEIGHT, INFO_MENU_POS_X
-        for d in danger:
+        danger = iter(danger)
+        d = next(danger, None)
+        while d and y < INFO_MENU_HEIGHT + BACKPACK_MENU_HEIGHT:
             self._out.write(f'\033[{SHIFT + y};{x+SHIFT}H{d}')
+            d = next(danger, None)
             y += 1
 
     def _render_food_menu(self):
@@ -114,7 +117,7 @@ class FlatRender:
         
     def _clear_backpack_menu(self):
         y, x = INFO_MENU_POS_Y + INFO_MENU_HEIGHT, INFO_MENU_POS_X
-        for i in range(y, HEIGHT):
+        for i in range(y, y + BACKPACK_MENU_HEIGHT):
             self._out.write(f'\033[{SHIFT + i};{x+SHIFT}H\033[0K')
 
     def _render_game(self, data_for_rendering:dict):

@@ -13,12 +13,27 @@ from .menu_render import MenuRender
 class MainRender:
 
     _renders = [FlatRender, RayCasting]
+    _symbols = {
+        PLAYER : '\033[1;37m@\033[0m',
+        ZOMBIE : '\033[1;32mZ\033[0m',
+        VAMPIRE : '\033[1;31mV\033[0m',
+        GHOST : '\033[1;37mG\033[0m',
+        OGRE : '\033[1;33mO\033[0m',
+        SNAKE : '\033[1;37mS\033[0m',
+        TREASURE : '\033[1;37m*\033[0m',
+        FOOD : '\033[1;37m%\033[0m',
+        POTION : '\033[1;37m!\033[0m',
+        SCROLL : '\033[1;37m?\033[0m',
+        WEAPON : '\033[1;37m)\033[0m',
+        FLOOR : '\033[2m·\033[0m',
+        MIMIC : '\033[1;37mM\033[0m',
+        }
 
     def __init__(self, out):
         self._mode = 0
         self._out = out
         Draw().rectangle(self._out, 0, 0, HEIGHT, WIDTH)
-        self._menu_render = MenuRender(self._out)
+        self._menu_render = MenuRender(self)
         self._show_start_game_menu()
         self._out.flush()
 
@@ -26,7 +41,7 @@ class MainRender:
         Draw().clear_game_field(self._out, HEIGHT, WIDTH)
         self._model = model
         self._menu_render.set_up(self._model)
-        self._render = self._renders[self._mode](self._out, model)
+        self._render = self._renders[self._mode](self, model)
         self._show_level()
         self._out.flush()
 
@@ -82,7 +97,7 @@ class MainRender:
 
     def change_mode(self):
         self._mode = not self._mode
-        self._render = self._renders[self._mode](self._out, self._model)
+        self._render = self._renders[self._mode](self, self._model)
 
 
     if __name__ == "__main__":

@@ -44,11 +44,10 @@ class Model:
         self._monsters_from_dict(data['monsters'])
         self._items_from_dict(data['items'])
         
-        self._visited = [i for i in data.get('visited', [0] * (ROOMS))]
+        # self._visited = [i for i in data.get('visited', [0] * (ROOMS))]
+        self._visited = [0] * (ROOMS)
         self._explored = {tuple(i) for i in data.get('explored', set())}
-        self._visible = set()
         self._danger = []
-        self._update_render_data()
         
     def _monsters_from_dict(self, data:list):
         self._monsters = {}
@@ -106,6 +105,10 @@ class Model:
                 angle = (self._player.angle + 0.0001) * pi
                 s = round(sin(angle))
                 c = round(cos(angle))
+                if abs(s) > abs(c):
+                    c = 0
+                else:
+                    s = 0
                 if command == Command.MOVE_FORWARD:
                     return y + s, x + c
                 elif command == Command.MOVE_BACK:
@@ -158,7 +161,6 @@ class Model:
                 self._monsters[m.pos] = m
                 del self._monsters[old_pos]
         self._player.update()
-        self._update_render_data()
 
     def open_door(self, key):
         if key.door.pos in self._doors:
@@ -185,66 +187,49 @@ class Model:
 
     @property
     def first_screen(self):
-        res = {pos: self._layout[pos] for pos in self._explored}
-        for i in range(ROOMS):
-            if self._visited[i]:
-                for pos in self._rooms[i].walls:
-                    res[pos] = self._layout[pos]
-        return res
+        visible = {pos for pos in self._explored}
+        # for i in range(ROOMS):
+        #     if self._visited[i]:
+        #         visible.update(self._rooms[i].walls)
+        return visible
 
     @property
     def data_for_rendering(self):
-        return self._res
-
-    def _update_render_data(self):
-        self._res = {}
-        idx = self._matrix[self._player.pos] #the room player in
+        pos = self._player.pos
+        idx = self._matrix[pos] #the room player in
         visible = set()
         if idx < ROOMS:
             r = self._rooms[idx]
             if not self._visited[idx]:
                 self._visited[idx] = 1
-                for pos in r.walls:
-                    self._res[pos] = self._layout[pos]
+                visible.update(r.walls)
+                self._explored.update(r.walls)
             visible.update(r.floor)
             visible.update(r.gate)
-          
-        self._update_visible(visible)
-
-        for pos in visible:
-            self._res[pos] = self._layout.get(pos, FLOOR)
+        else:
+            visible.add(pos)
         
-        self._visible -= visible
-        for pos in self._visible:
-            self._res[pos] = self._layout.get(pos, GROUND)
-        self._visible = visible
+        self._update_visible(visible)
+        return visible
+    
+    def visible(self, pos):
+        if pos == self._player.pos:
+            return self._player.id
+        elif pos in self._monsters:
+            return self._monsters[pos].id
+        elif pos in self._items:
+            return self._items[pos].id
+        else:
+            return self._layout.get(pos, FLOOR)
 
-        for pos in self._items:
-            if pos in visible:
-                item = self._items[pos]
-                if item.id == KEY:
-                    self._res[pos] = item.color + item.id + '\033[0m'
-                else:
-                    self._res[pos] = item.id
-        for pos in self._doors:
-            if pos in visible:
-                self._res[pos] = self._doors[pos] + 'x' + '\033[0m'
-
-        for m in self._monsters.values():
-            if m.pos in visible:
-                self._res[m.pos] = m.id
-
-        self._res[self._player.pos] = self._player.id
-
+    def layout(self, pos):
+        return self._layout.get(pos, GROUND)
 
     def place_entity(self, pos, e:Entity):
         if self.walkable(pos):
             self._matrix[(e.pos)][1] = None
             e.pos = pos
             self._matrix[pos][1] = e
-
-    def walkable(self, pos):
-        return self.valid(pos) and pos not in self._items and not pos in self._monsters
     
     def valid(self, pos):
         return pos in self._matrix
@@ -337,7 +322,7 @@ class Model:
         data['items'] = [item.to_dict() for item in self._items.values()]
         data['rooms'] = [r.to_dict() for r in self._rooms ]
         data['corridors'] = [r.to_dict() for r in self._corridors ]
-        data['visited'] = self._visited  
+        # data['visited'] = self._visited  
         data['statistics'] = self._statistics
 
         return data

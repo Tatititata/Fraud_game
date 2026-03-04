@@ -9,12 +9,11 @@ class MenuRender:
 
     _positions = dict(zip(FULL_BACKPACK, range(len(FULL_BACKPACK))))
 
-    def __init__(self, out):
-        self._out = out
+    def __init__(self, parent):
+        self._out = parent._out
         self._show_game_menu()
         self._show_record_menu()
-        Draw().rectangle(self._out, INFO_MENU_POS_Y + INFO_MENU_HEIGHT + 12, INFO_MENU_POS_X, 
-                         HEIGHT - INFO_MENU_HEIGHT - BACKPACK_MENU_HEIGHT, INFO_MENU_WIDTH * 2)
+
         self._old_backpack = set()
 
     def set_up(self, model):

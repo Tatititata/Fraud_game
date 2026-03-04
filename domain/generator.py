@@ -636,7 +636,7 @@ class Generator:
         del self._matrix[self._end]
 
     def _place_items(self):
-        # return
+        return
         items = dict(zip(ITEMS, 
             (
                 max(round(5 * (self._k_items_quantity)), 1),      # food
@@ -668,7 +668,7 @@ class Generator:
         
     def _place_monsters(self, start):
         self._monsters = set()
-        # return
+        return
         rooms = {start,}
         quantity = round(randint(3, 5) * self._k_monsters_quantity)
         with open('adapter.txt', 'a') as f:

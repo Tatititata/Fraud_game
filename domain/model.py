@@ -158,8 +158,6 @@ class Model:
         for r in self._rooms:
             for floor in r.floor:
                 self._matrix[floor] = r.id
-            for g in r.gate:
-                self._matrix[g] = r.id
             
     def _handle_monsters(self):
         for m in list(self._monsters.values()):
@@ -196,26 +194,13 @@ class Model:
                         self._check_visibility(position, visible)
                 pos = (pos[0] + dy, pos[1] + dx)
                 idx = self._matrix.get(pos)
+            if pos in self._doors:
+                visible.add(pos)
 
     def _check_visibility(self, pos, visible):
             if Bresenham().find_path(self._player.pos, pos, self):
                 visible.add(pos)
 
-    def _update_visible_old(self, visible):
-        y, x = self._player.pos
-        for dy, dx in ((1, 0), (0, 1), (-1, 0), (0, -1)):
-            pos = (y + dy, x + dx)
-            if pos in self._doors:
-                visible.add(pos)
-            value = self._matrix.get(pos)
-            while value is not None:
-                visible.add(pos)
-                pos = (pos[0] + dy, pos[1] + dx)
-                if pos in self._doors:
-                    visible.add(pos)
-                value = self._matrix.get(pos)
-            if pos in self._layout:
-                visible.add(pos)
 
     @property
     def first_screen(self):

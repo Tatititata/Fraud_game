@@ -33,26 +33,31 @@ class Monster(Character):
             self._pos = pos
 
     def move(self, player):
-        y0, x0 = self.pos
-        y1, x1 = player.pos
-        dy = abs(y1 - y0)
-        dx = abs(x1 - x0)
-        if max(dy, dx) <= self.hostility:
+        
 
-            pos = Bresenham().find_path(self.pos, player.pos, self._nav)
-            if pos is not None:
-
-                if pos != player.pos:
-                    self._nav.add_danger(f'{self.id} sees you! {self.id} health is {self.health}.')
-                    if self._nav.valid_for_monsters(pos):
-                        self.pos = pos
-                else:
-                    self.attack(player)
+        pos = self._step_to_player(player)
+        if pos is not None:
+            if pos != player.pos:
+                self._nav.add_danger(f'{self.id} sees you! {self.id} health is {self.health}.')
+                if self._nav.valid_for_monsters(pos):
+                    self.pos = pos
+            else:
+                self.attack(player)
         else:
             if self.room != self._nav.room_number(self.pos):
                 self._go_home()
             else:
                 self._patrol()
+
+    def _step_to_player(self, player):
+        y0, x0 = self.pos
+        y1, x1 = player.pos
+        dy = abs(y1 - y0)
+        dx = abs(x1 - x0)
+        if max(dy, dx) > self.hostility:
+            return None
+        return Bresenham().find_path(self.pos, player.pos, self._nav)
+
 
     def _go_home(self):
         stack = [self.pos]

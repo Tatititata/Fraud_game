@@ -605,8 +605,12 @@ class Generator:
             for room in closed_rooms:
                 pos = self._get_pos(room_with_keys)
                 lock_pos = self._find_door_to_close(pos, room)
+
                 lock_id = self._matrix[lock_pos]
                 self._items.add(Item((KEY, pos, (lock_id, lock_pos))))
+                # lock_id = self._matrix.get(lock_pos)
+                # if lock_id is not None:
+                #     self._items.add(Item((KEY, pos, (lock_id, lock_pos))))
 
     def _find_door_to_close(self, pos, room):
         gates = self._rooms[room].gate
@@ -636,7 +640,7 @@ class Generator:
         del self._matrix[self._end]
 
     def _place_items(self):
-        # return
+        return
         items = dict(zip(ITEMS, 
             (
                 max(round(5 * (self._k_items_quantity)), 1),      # food
@@ -668,7 +672,7 @@ class Generator:
         
     def _place_monsters(self, start):
         self._monsters = set()
-        # return
+        return
         rooms = {start,}
         quantity = round(randint(3, 5) * self._k_monsters_quantity)
         with open('adapter.txt', 'a') as f:

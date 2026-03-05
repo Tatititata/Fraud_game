@@ -63,14 +63,14 @@ class Generator:
                 success = False
             if len(exceptions) > 2:
                 raise AttributeError(exceptions)
-        # with open('layout.txt', 'a') as f:
-        #     f.write(f'{self.__repr__()}\n')
-        #     f.write('rooms\n')
-        #     for r in self._rooms:
-        #         f.write(f'{r}\n')
-        #     f.write(f'corridors\n')
-        #     for c in self._corridors:
-        #         f.write(f'{c}\n')
+        with open('layout.txt', 'w') as f:
+            f.write(f'{self.__repr__()}\n')
+            f.write('rooms\n')
+            for r in self._rooms:
+                f.write(f'{r}\n')
+            f.write(f'corridors\n')
+            for c in self._corridors:
+                f.write(f'{c}\n')
         
 
     def _most_distant_points(self, pos=None):
@@ -600,7 +600,7 @@ class Generator:
         #     print(f'room={r.id} gate in corrid={r.gate & corr}')
 
     def _place_keys(self, keys):
-        return
+        # return
         for room_with_keys, closed_rooms in keys.items():
             for room in closed_rooms:
                 pos = self._get_pos(room_with_keys)
@@ -636,7 +636,7 @@ class Generator:
         del self._matrix[self._end]
 
     def _place_items(self):
-        return
+        # return
         items = dict(zip(ITEMS, 
             (
                 max(round(5 * (self._k_items_quantity)), 1),      # food
@@ -668,7 +668,7 @@ class Generator:
         
     def _place_monsters(self, start):
         self._monsters = set()
-        return
+        # return
         rooms = {start,}
         quantity = round(randint(3, 5) * self._k_monsters_quantity)
         with open('adapter.txt', 'a') as f:

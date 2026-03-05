@@ -1,7 +1,7 @@
 from common.characters import *
 from .navigator import Navigator
 from random import randint, choice
-
+from math import sin, cos, pi
 
 # - Персонаж:
 #   + максимальный уровень здоровья,

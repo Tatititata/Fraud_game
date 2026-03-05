@@ -1,6 +1,7 @@
 from common.characters import *
 from .entity import Character
 from random import randint, choice
+from .bresenham import Bresenham
 
 
 class Monster(Character):
@@ -32,14 +33,21 @@ class Monster(Character):
             self._pos = pos
 
     def move(self, player):
-        pos = self._path_to_player(player)
-        if pos:
-            
-            if pos != player.pos and self._nav.valid_for_monsters(pos):
-                self._nav.add_danger(f'{self.id} sees you! {self.id} health is {self.health}.')
-                self.pos = pos
-            else:
-                self.attack(player)
+        y0, x0 = self.pos
+        y1, x1 = player.pos
+        dy = abs(y1 - y0)
+        dx = abs(x1 - x0)
+        if max(dy, dx) <= self.hostility:
+
+            pos = Bresenham().find_path(self.pos, player.pos, self._nav)
+            if pos is not None:
+
+                if pos != player.pos:
+                    self._nav.add_danger(f'{self.id} sees you! {self.id} health is {self.health}.')
+                    if self._nav.valid_for_monsters(pos):
+                        self.pos = pos
+                else:
+                    self.attack(player)
         else:
             if self.room != self._nav.room_number(self.pos):
                 self._go_home()
@@ -67,48 +75,48 @@ class Monster(Character):
                         path[new_pos] = pos
             stack = new_stack
 
-    def _path_to_player(self, player): 
-        y0, x0 = self.pos
-        y1, x1 = player.pos
-        dy = abs(y1 - y0)
-        dx = abs(x1 - x0)
-        if max(dy, dx) > self.hostility:
-            return None
-        sy = 1 if y0 < y1 else -1
-        sx = 1 if x0 < x1 else -1
-        y, x = y0, x0
-        if dx > dy:
-            d = 2*dy - dx
-            while True: 
-                x += sx
-                if y == y1 and x == x1:
-                    return y0, x0 + sx
-                if not self._nav.valid((y, x)):
-                    return None          
-                if d >= 0:
-                    y += sy      
-                    if y == y1 and x == x1:
-                        return y0, x0 + sx
-                    d -= 2*dx
-                    if not self._nav.valid((y, x)):
-                        return None
-                d += 2*dy        
-        else:        
-            d = 2*dx - dy
-            while True:
-                y += sy       
-                if y == y1 and x == x1:
-                    return y0 + sy, x0 
-                if not self._nav.valid((y, x)):
-                    return None
-                if d >= 0:
-                    x += sx  
-                    if y == y1 and x == x1:
-                        return y0 + sy, x0 
-                    d -= 2*dy  
-                    if not self._nav.valid((y, x)):
-                        return None
-                d += 2*dx   
+    # def _path_to_player(self, player): 
+    #     y0, x0 = self.pos
+    #     y1, x1 = player.pos
+    #     dy = abs(y1 - y0)
+    #     dx = abs(x1 - x0)
+    #     if max(dy, dx) > self.hostility:
+    #         return None
+    #     sy = 1 if y0 < y1 else -1
+    #     sx = 1 if x0 < x1 else -1
+    #     y, x = y0, x0
+    #     if dx > dy:
+    #         d = 2*dy - dx
+    #         while True: 
+    #             x += sx
+    #             if y == y1 and x == x1:
+    #                 return y0, x0 + sx
+    #             if not self._nav.valid((y, x)):
+    #                 return None          
+    #             if d >= 0:
+    #                 y += sy      
+    #                 if y == y1 and x == x1:
+    #                     return y0, x0 + sx
+    #                 d -= 2*dx
+    #                 if not self._nav.valid((y, x)):
+    #                     return None
+    #             d += 2*dy        
+    #     else:        
+    #         d = 2*dx - dy
+    #         while True:
+    #             y += sy       
+    #             if y == y1 and x == x1:
+    #                 return y0 + sy, x0 
+    #             if not self._nav.valid((y, x)):
+    #                 return None
+    #             if d >= 0:
+    #                 x += sx  
+    #                 if y == y1 and x == x1:
+    #                     return y0 + sy, x0 
+    #                 d -= 2*dy  
+    #                 if not self._nav.valid((y, x)):
+    #                     return None
+    #             d += 2*dx   
 
     def __repr__(self):
         return str(self.to_dict())

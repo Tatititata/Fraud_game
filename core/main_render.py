@@ -96,9 +96,17 @@ class MainRender:
         return self._mode
 
     def change_mode(self):
+        
+        y, x = INFO_MENU_POS_Y + INFO_MENU_HEIGHT + BACKPACK_MENU_HEIGHT + 1, INFO_MENU_POS_X + 1
+        map_height = HEIGHT - INFO_MENU_HEIGHT - BACKPACK_MENU_HEIGHT
+        y, x = INFO_MENU_POS_Y + INFO_MENU_HEIGHT + BACKPACK_MENU_HEIGHT, INFO_MENU_POS_X
+        for i in range(y, y + map_height):
+            self._out.write(f'\033[{SHIFT + i};{x+SHIFT}H\033[0K')
+
         self._mode = not self._mode
         self._render = self._renders[self._mode](self, self._model)
 
+    
 
     if __name__ == "__main__":
         pass

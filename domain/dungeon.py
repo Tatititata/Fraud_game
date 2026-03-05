@@ -128,6 +128,9 @@ class Corridor:
     @property
     def walls(self):
         return self._path
+    @property
+    def floor(self):
+        return set()
     
     @property
     def connecting(self):

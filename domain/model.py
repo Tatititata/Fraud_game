@@ -9,6 +9,7 @@ from .dungeon import Room, Corridor
 from .layout import Layout
 from common.keymap import Command
 from math import sin, cos, pi
+from .bresenham import Bresenham
 
 
 class Model:
@@ -44,8 +45,7 @@ class Model:
         self._monsters_from_dict(data['monsters'])
         self._items_from_dict(data['items'])
         
-        # self._visited = [i for i in data.get('visited', [0] * (ROOMS))]
-        self._visited = [0] * (ROOMS)
+        self._visited = [0] * (ROOMS + len(self._corridors))
         self._explored = {tuple(i) for i in data.get('explored', set())}
         self._danger = []
         
@@ -71,7 +71,7 @@ class Model:
         if self._gamestate == NORMAL:
             if isinstance(command, Command):
                 if command == Command.CHANGE_RENDER:
-                    self._player.angle = -1/2
+                    self._player.angle = 1/2
                     return
                 self._move_player(command)
                 self._handle_monsters()          
@@ -88,32 +88,40 @@ class Model:
             return
         
     def _get_pos(self, command):
+
+
         angle_delta = 1/16
+        
         if command == Command.ROTATE_LEFT:
             self._player.angle -= angle_delta
             return self._player.pos
         elif command == Command.ROTATE_RIGHT:
             self._player.angle += angle_delta
             return self._player.pos
+        
+        y, x = self._player.pos
+        if command == Command.MOVE_LEFT:
+            return y, x - 1
+        if command == Command.MOVE_RIGHT:
+            return y, x + 1
+
+        angle = (self._player.angle + 0.0001) * pi
+        s = round(sin(angle))
+        c = round(cos(angle))
+        if abs(s) > abs(c):
+            c = 0
         else:
-            y, x = self._player.pos
-            if command == Command.MOVE_LEFT:
-                return y, x - 1
-            elif command == Command.MOVE_RIGHT:
-                return y, x + 1
-            else:
-                angle = (self._player.angle + 0.0001) * pi
-                s = round(sin(angle))
-                c = round(cos(angle))
-                if abs(s) > abs(c):
-                    c = 0
-                else:
-                    s = 0
-                if command == Command.MOVE_FORWARD:
-                    return y + s, x + c
-                elif command == Command.MOVE_BACK:
-                    return y - s, x - c
-            
+            s = 0
+
+        if command == Command.MOVE_FORWARD:
+            y += s
+            x += c
+        elif command == Command.MOVE_BACK:
+            y -= s
+            x -= c
+        
+        return y, x
+
     def _move_player(self, command):
         pos = self._get_pos(command)
         if pos == self._player.pos:
@@ -171,6 +179,30 @@ class Model:
 
     def _update_visible(self, visible):
         y, x = self._player.pos
+        indexes = set()
+        for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            pos = (y + dy, x + dx)
+            idx = self._matrix.get(pos)
+            while idx is not None:
+                if idx not in indexes:
+                    indexes.add(idx)
+                    if idx < ROOMS:
+                        r = self._rooms[idx]
+                    else:
+                        r = self._corridors[idx - ROOMS]
+                    for position in r.floor:
+                        self._check_visibility(position, visible)
+                    for position in r.walls:
+                        self._check_visibility(position, visible)
+                pos = (pos[0] + dy, pos[1] + dx)
+                idx = self._matrix.get(pos)
+
+    def _check_visibility(self, pos, visible):
+            if Bresenham().find_path(self._player.pos, pos, self):
+                visible.add(pos)
+
+    def _update_visible_old(self, visible):
+        y, x = self._player.pos
         for dy, dx in ((1, 0), (0, 1), (-1, 0), (0, -1)):
             pos = (y + dy, x + dx)
             if pos in self._doors:
@@ -178,12 +210,12 @@ class Model:
             value = self._matrix.get(pos)
             while value is not None:
                 visible.add(pos)
-                if value >= ROOMS:
-                    self._explored.add(pos)
                 pos = (pos[0] + dy, pos[1] + dx)
                 if pos in self._doors:
                     visible.add(pos)
                 value = self._matrix.get(pos)
+            if pos in self._layout:
+                visible.add(pos)
 
     @property
     def first_screen(self):
@@ -200,16 +232,14 @@ class Model:
         visible = set()
         if idx < ROOMS:
             r = self._rooms[idx]
+            visible.update(r.walls)
             if not self._visited[idx]:
                 self._visited[idx] = 1
-                visible.update(r.walls)
                 self._explored.update(r.walls)
-            visible.update(r.floor)
-            visible.update(r.gate)
         else:
-            visible.add(pos)
-        
+            self._explored.add(pos)
         self._update_visible(visible)
+        visible.add(pos)
         return visible
     
     def visible(self, pos):
@@ -218,12 +248,20 @@ class Model:
         elif pos in self._monsters:
             return self._monsters[pos].id
         elif pos in self._items:
-            return self._items[pos].id
+            item = self._items[pos]
+            if item.id == KEY:
+                return item.color + item.id + '\033[0m'
+            return item.id
+        elif pos in self._doors:
+            
+            return self._doors[pos] + 'x' + '\033[0m'
         else:
             return self._layout.get(pos, FLOOR)
 
     def layout(self, pos):
-        return self._layout.get(pos, GROUND)
+        if pos in self._explored:
+            return self._layout[pos]
+        return GROUND
 
     def place_entity(self, pos, e:Entity):
         if self.walkable(pos):
@@ -311,8 +349,6 @@ class Model:
     def add_statistics(self, key:str, value:int=1):
         self._statistics[key] += value
 
-    def rotate(self, direction):
-        self._player.facing += direction
 
     def data_for_saving(self):
         data = {}

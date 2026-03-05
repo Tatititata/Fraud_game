@@ -51,7 +51,7 @@ class RayCasting:
                     depth += step
                     pos = (round(y), round(x))
 
-                    if pos not in visible:
+                    if not self._model.valid(pos):
                         break
                 depths.append(depth)
 

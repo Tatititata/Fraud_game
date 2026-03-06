@@ -63,14 +63,14 @@ class Generator:
                 success = False
             if len(exceptions) > 2:
                 raise AttributeError(exceptions)
-        with open('layout.txt', 'w') as f:
-            f.write(f'{self.__repr__()}\n')
-            f.write('rooms\n')
-            for r in self._rooms:
-                f.write(f'{r}\n')
-            f.write(f'corridors\n')
-            for c in self._corridors:
-                f.write(f'{c}\n')
+        # with open('layout.txt', 'w') as f:
+        #     f.write(f'{self.__repr__()}\n')
+        #     f.write('rooms\n')
+        #     for r in self._rooms:
+        #         f.write(f'{r}\n')
+        #     f.write(f'corridors\n')
+        #     for c in self._corridors:
+        #         f.write(f'{c}\n')
         
 
     def _most_distant_points(self, pos=None):
@@ -572,13 +572,15 @@ class Generator:
 
     def __repr__(self):
         from .layout import Layout
-        l = Layout().create_layout(self._rooms, self._corridors, with_rooms=False)
+        l = Layout().create_layout(self._rooms, self._corridors, with_rooms=True)
         l[self._player.pos] = '@'
         l[self._end] = '█'
         for i in self._items:
             if i.id == KEY:
-                l[i.pos] = i.color + i.id + '\033[0m'
-                l[i.door.pos] = i.color + 'x' + '\033[0m'
+                # l[i.pos] = i.color + i.id + '\033[0m'
+                # l[i.door.pos] = i.color + 'x' + '\033[0m'
+                l[i.pos] = i.id
+                l[i.door.pos] = 'x'
             else:
                 l[i.pos] = i.id
         layout = '\n'.join(f"{i:02}{''.join(l.get((i, j), ' ') for j in range(WIDTH))}"  for i in range(HEIGHT))
@@ -601,16 +603,20 @@ class Generator:
 
     def _place_keys(self, keys):
         # return
+        key_positions = set()
         for room_with_keys, closed_rooms in keys.items():
             for room in closed_rooms:
                 pos = self._get_pos(room_with_keys)
+                self._matrix[pos] = 0
+                while pos in key_positions:
+                    pos = self._get_pos(room_with_keys)
+                    self._matrix.add(pos)
                 lock_pos = self._find_door_to_close(pos, room)
-
                 lock_id = self._matrix[lock_pos]
                 self._items.add(Item((KEY, pos, (lock_id, lock_pos))))
-                # lock_id = self._matrix.get(lock_pos)
-                # if lock_id is not None:
-                #     self._items.add(Item((KEY, pos, (lock_id, lock_pos))))
+        for key_pos in key_positions:
+            del self._matrix[key_pos]
+
 
     def _find_door_to_close(self, pos, room):
         gates = self._rooms[room].gate
@@ -640,7 +646,7 @@ class Generator:
         del self._matrix[self._end]
 
     def _place_items(self):
-        return
+        # return
         items = dict(zip(ITEMS, 
             (
                 max(round(5 * (self._k_items_quantity)), 1),      # food
@@ -672,7 +678,7 @@ class Generator:
         
     def _place_monsters(self, start):
         self._monsters = set()
-        return
+        # return
         rooms = {start,}
         quantity = round(randint(3, 5) * self._k_monsters_quantity)
         with open('adapter.txt', 'a') as f:

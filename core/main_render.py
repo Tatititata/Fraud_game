@@ -7,6 +7,7 @@ from .drawing import Draw
 from .flat_render import FlatRender
 from .raycasting import RayCasting
 from .menu_render import MenuRender
+from domain.entity import Character, Item, Entity
 
 
 
@@ -27,6 +28,7 @@ class MainRender:
         WEAPON : '\033[1;37m)\033[0m',
         FLOOR : '\033[2m·\033[0m',
         MIMIC : '\033[1;37mM\033[0m',
+        EXIT : '\033[1;37m█\033[0m',
         }
 
     def __init__(self, out):
@@ -77,7 +79,8 @@ class MainRender:
 
     def update(self):
         if self._model.gamestate:
-            self._render.update()
+            if self._model.gamestate == NORMAL:
+                self._render.update()
             self._menu_render.update()
         else:
             self.show_gameover_menu()
@@ -96,7 +99,6 @@ class MainRender:
         return self._mode
 
     def change_mode(self):
-        
         y, x = INFO_MENU_POS_Y + INFO_MENU_HEIGHT + BACKPACK_MENU_HEIGHT + 1, INFO_MENU_POS_X + 1
         map_height = HEIGHT - INFO_MENU_HEIGHT - BACKPACK_MENU_HEIGHT
         y, x = INFO_MENU_POS_Y + INFO_MENU_HEIGHT + BACKPACK_MENU_HEIGHT, INFO_MENU_POS_X
@@ -106,7 +108,24 @@ class MainRender:
         self._mode = not self._mode
         self._render = self._renders[self._mode](self, self._model)
 
-    
+
+    def converter(self, pos, obj):
+        
+        if isinstance(obj, Character):
+            return f'{self._symbols.get(obj.id, obj.id)}'
+        elif isinstance(obj, Item):
+            if hasattr(obj, 'color'):
+                if pos == obj.pos:
+                    return f'{obj.color + '&\033[0m'}'
+                else:
+                    return f'{obj.color + 'x\033[0m'}'
+            else:
+                return f'{self._symbols.get(obj.id, obj.id)}'
+        elif isinstance(obj, Entity):
+            return f'{obj.id + 'x\033[0m'}'
+        else:
+            return f'{self._symbols.get(obj, obj)}'
+
 
     if __name__ == "__main__":
         pass

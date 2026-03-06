@@ -299,7 +299,8 @@ class Player(Character):
         elif gamestate == SCROLL:
             self._use_scroll(item, 'scrolls_read')
         elif gamestate == KEY:
-            self._nav.open_door(item)
+            if not self._nav.open_door(item):
+                self.get_item(item)
             return False # ??? may be true???
         else:
             self._use_weapon(item)
@@ -315,7 +316,7 @@ class Player(Character):
                 setattr(self, t, getattr(self, t) - power)
         for k in list_to_del:
             del self._permanent_items[k]
-        # sys.stdout.write(f'\033[{53};{1}H\033[2K{self._permanent_items}')
+
 
     def _use_food(self, item:Item):
         if self.health + item.power < self.max_health:

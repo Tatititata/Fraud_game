@@ -63,7 +63,7 @@ class Model:
             item = Item(d)
             self._items[item.pos] = item
             if item.id == KEY:
-                self._doors[item.door.pos] = item.color
+                self._doors[item.door.pos] = item
                 del self._matrix[item.door.pos]
       
     def update(self, command):
@@ -74,7 +74,8 @@ class Model:
                     self._player.angle = 1/2
                     return
                 self._move_player(command)
-                self._handle_monsters()          
+                if command not in (Command.ROTATE_LEFT, Command.ROTATE_RIGHT):
+                    self._handle_monsters()          
             elif command in 'hjkum':
                 self._gamestate = self.BACKPACK_SHOW_MENU[command]
             else:
@@ -148,7 +149,7 @@ class Model:
                     del self._items[pos]
                     self._statistics["steps"] += 1
         elif pos in self._doors:
-            self.add_danger('You need to open the door')
+            self.add_danger(f'Open the door with the {self._doors[pos].color + '&\033[0m'}!')
         elif pos in self._matrix:
             self._player.pos = pos
             self._statistics["steps"] += 1
@@ -170,10 +171,17 @@ class Model:
 
     def open_door(self, key):
         if key.door.pos in self._doors:
-            del self._doors[key.door.pos]
-            self._matrix[key.door.pos] = key.door.id
-        else:
-            self.add_danger('You need key for the door!')
+            y0, x0 = key.door.pos
+            y1, x1 = self._player.pos
+            if abs(x1 - x0) + abs(y1 - y0) != 1:
+                self.add_danger(f'Find the {key.color + "door" + "\033[0m"} to open with the key!')
+                return False
+            else:
+                del self._doors[key.door.pos]
+                self._matrix[key.door.pos] = key.door.id
+                return True
+        # else:
+        #     self.add_danger('You need key for the door!')
 
     def _update_visible(self, visible):
         y, x = self._player.pos
@@ -229,17 +237,13 @@ class Model:
     
     def visible(self, pos):
         if pos == self._player.pos:
-            return self._player.id
-        elif pos in self._monsters:
-            return self._monsters[pos].id
-        elif pos in self._items:
-            item = self._items[pos]
-            if item.id == KEY:
-                return item.color + item.id + '\033[0m'
-            return item.id
-        elif pos in self._doors:
-            
-            return self._doors[pos] + 'x' + '\033[0m'
+            return self._player
+        if pos in self._monsters:
+            return self._monsters[pos]
+        if pos in self._items:
+            return self._items[pos]
+        if pos in self._doors:
+            return self._doors[pos]
         else:
             return self._layout.get(pos, FLOOR)
 

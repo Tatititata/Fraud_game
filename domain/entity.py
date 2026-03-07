@@ -131,6 +131,11 @@ class Entity:
     def to_dict(self):
         return {'pos': self._pos, 'id': self.id}
 
+class Door(Entity):
+    def __init__(self, id, pos, color):
+        super().__init__(id, pos)
+        self.color = color
+    
 
 class Item(Entity):
     def __init__(self, data):
@@ -151,7 +156,7 @@ class Item(Entity):
             self.color = data.get('color')
             pos = data.get('door').get('pos')
             id = data.get('door').get('id')
-            self.door = Entity(id, pos)
+            self.door = Door(id, pos, self.color)
 
     def _init_new_item(self, data):
         id, pos, k = data
@@ -173,7 +178,7 @@ class Item(Entity):
         elif self.id == KEY:
             self.color = Color()
             id, pos = k
-            self.door = Entity(id, pos)
+            self.door = Door(id, pos, self.color)
 
 
     def to_dict(self):

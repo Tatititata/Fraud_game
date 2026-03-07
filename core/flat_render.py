@@ -36,7 +36,7 @@ class FlatRender:
             obj = self._model.visible(pos)
             y, x = pos
             self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
-            char = self._parent.converter(pos, obj)
+            char = self._parent.converter(obj)
             self._out.write(char)
 
 

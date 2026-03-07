@@ -7,7 +7,7 @@ from .drawing import Draw
 from .flat_render import FlatRender
 from .raycasting import RayCasting
 from .menu_render import MenuRender
-from domain.entity import Character, Item, Entity
+from domain.entity import Character, Item, Door
 
 
 
@@ -109,20 +109,17 @@ class MainRender:
         self._render = self._renders[self._mode](self, self._model)
 
 
-    def converter(self, pos, obj):
-        
+    def converter(self, obj):
         if isinstance(obj, Character):
             return f'{self._symbols.get(obj.id, obj.id)}'
+        elif isinstance(obj, Door):
+            return f'{obj.color + 'x\033[0m'}'
         elif isinstance(obj, Item):
             if hasattr(obj, 'color'):
-                if pos == obj.pos:
-                    return f'{obj.color + '&\033[0m'}'
-                else:
-                    return f'{obj.color + 'x\033[0m'}'
+                return f'{obj.color + '&\033[0m'}'
             else:
                 return f'{self._symbols.get(obj.id, obj.id)}'
-        elif isinstance(obj, Entity):
-            return f'{obj.id + 'x\033[0m'}'
+
         else:
             return f'{self._symbols.get(obj, obj)}'
 

@@ -63,7 +63,7 @@ class Model:
             item = Item(d)
             self._items[item.pos] = item
             if item.id == KEY:
-                self._doors[item.door.pos] = item
+                self._doors[item.door.pos] = item.door
                 del self._matrix[item.door.pos]
       
     def update(self, command):

@@ -4,7 +4,7 @@ from math import sin, cos, pi
 from .drawing import Draw
 from domain.model import Model
 from domain.monsters import Monster
-from domain.entity import Entity, Player
+from domain.entity import Entity, Player, Door
 from common.playground import *
 
 FOV = pi / 3
@@ -14,7 +14,7 @@ ANGLE_DELTA = FOV / NUM_RAYS
 MAX_DEPTH = 98
 MAX_VISIBLE_DEPTH = 20
 SCREEN_H = HEIGHT - 2
-WALL_HIGHT = 48
+WALL_HIGHT = 46
     
 class RayCasting:
 
@@ -99,7 +99,7 @@ class RayCasting:
                 pos = (y, x)
                 if pos in self._visible:
                     obj = self._model.visible(pos)
-                    char = self._parent.converter(pos, obj)
+                    char = self._parent.converter(obj)
                 elif pos in self._model._explored:
                     char = self._model.layout(pos)
                 else:
@@ -143,10 +143,13 @@ class RayCasting:
                     if obj in ROOM_WALLS:
                         break
                     if obj != FLOOR and not isinstance(obj, Player):
+
                         if isinstance(obj, Monster):
-                            depths[i].append((depth, self._parent.converter(pos, obj), 0.8))
+                            depths[i].append((depth, self._parent.converter(obj), 0.8))
+                        elif isinstance(obj, Door):
+                            depths[i].append((depth, self._parent.converter(obj), 1))
                         elif isinstance(obj, Entity):
-                            depths[i].append((depth, self._parent.converter(pos, obj), 0.3))
+                            depths[i].append((depth, self._parent.converter(obj), 0.3))
 
 
             depths[i].append(depth)

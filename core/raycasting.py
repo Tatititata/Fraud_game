@@ -14,7 +14,7 @@ ANGLE_DELTA = FOV / NUM_RAYS
 MAX_DEPTH = 98
 MAX_VISIBLE_DEPTH = 20
 SCREEN_H = HEIGHT - 2
-
+WALL_HIGHT = 48
     
 class RayCasting:
 
@@ -40,11 +40,8 @@ class RayCasting:
                 b += 10
             depths = self._get_depths()
 
-
-            hights = []
-
             max_visible = MAX_VISIBLE_DEPTH
-            wall_hight = 48
+
             base_color = (110, 100, 100)
                 
             for j in range(NUM_RAYS):
@@ -54,29 +51,31 @@ class RayCasting:
                     br = int(255 * (1 - norm_dist))
                 else:
                     br = 0
-                height = min(int(wall_hight / depth[-1]), wall_hight)
-                hights.append(height)
-                ceil = (wall_hight - height) // 2
+                height = min(int(WALL_HIGHT / depth[-1]), WALL_HIGHT)
+
+                ceil = (WALL_HIGHT - height) // 2
                 char =  '█'  #'░█'
                 for i in range(ceil, ceil + height):
                     r = int(base_color[0] * (br / 255))
                     g = int(base_color[1] * (br / 255))
                     b = int(base_color[2] * (br / 255))
                     chars[i][j] = f"\033[38;2;{r};{g};{b}m{char}"
+
                 top = SCREEN_H - 1
+
                 if len(depth) > 1:
                     for d in depth[:-1]:
                         dist, char, size = d
-                        height = min(int(wall_hight / dist), wall_hight)
-                        ceil = (wall_hight - height) // 2
+                        height = min(int(WALL_HIGHT / dist), WALL_HIGHT)
+                        ceil = (WALL_HIGHT - height) // 2
                         size = round(height * size)
                         start_point = min(height + ceil, top)
-                        end_point = max(start_point - size, 0)
+                        end_point = max(height + ceil - size, 0)
                         top = end_point
                         for i in range(start_point, end_point - 1, -1):
                             chars[i][j] = char
-                        if top >= 0:
-                            break
+                        # if top <= 0:
+                        #     break
 
             i = 0
             for line in chars:
@@ -137,9 +136,12 @@ class RayCasting:
                 pos = (round(y), round(x))
                 if pos != old_pos:
                     old_pos = pos
-                    if not self._model.valid(pos):
+                    
+                    if pos not in self._visible:
                         break
                     obj = self._model.visible(pos)
+                    if obj in ROOM_WALLS:
+                        break
                     if obj != FLOOR and not isinstance(obj, Player):
                         if isinstance(obj, Monster):
                             depths[i].append((depth, self._parent.converter(pos, obj), 0.8))

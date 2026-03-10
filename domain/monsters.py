@@ -96,6 +96,7 @@ class Monster(Character):
 
     def to_dict(self):
         return {
+        'class': self.__class__.__name__,
         'id': self.id,
         'pos': self.pos, 
         'room': self.room,

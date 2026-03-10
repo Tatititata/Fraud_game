@@ -16,7 +16,7 @@ from .bresenham import Bresenham
 class Model:
 
     BACKPACK_SHOW_MENU = {'j': FOOD, 'h': WEAPON, 'u': SCROLL, 'k':POTION, 'm': KEY}
-    MONSTERS_DICT = dict(zip(MONSTERS, (Zombie, Vampire, Ghost, Ogre , Snake)))
+    MONSTERS_DICT = dict(zip('Zombie Vampire Ghost Ogre Snake Mimic'.split(), (Zombie, Vampire, Ghost, Ogre , Snake, Mimic)))
 
     def __init__(self, data, statistics=None):
         data = data.data
@@ -53,7 +53,7 @@ class Model:
     def _monsters_from_dict(self, data:list):
         self._monsters = {}
         for m in data:
-            monster = self.MONSTERS_DICT.get(m['id'], Mimic)()
+            monster = self.MONSTERS_DICT.get(m['class'])()
             monster.set_features(m, self._nav)
             if isinstance(monster, Ghost):
                 r = monster.room

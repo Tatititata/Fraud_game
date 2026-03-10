@@ -1,10 +1,12 @@
 from common.constants import *
+from common.characters import GHOST
 from common.drawing_const import *
 from math import sin, cos, pi
 from .drawing import Draw
 from domain.model import Model
-from domain.monsters import Monster
-from domain.entity import Entity, Player, Door
+from domain.monsters import Monster, Ghost
+from domain.entity import Entity, Door
+from domain.player import Player
 from common.playground import *
 
 FOV = pi / 3
@@ -22,9 +24,11 @@ class RayCasting:
         self._out = parent._out
         self._parent = parent
         self._model = model
-        Draw().clear_game_field(self._out, HEIGHT, WIDTH)
-        Draw().rectangle(self._out, INFO_MENU_POS_Y + INFO_MENU_HEIGHT + BACKPACK_MENU_HEIGHT, INFO_MENU_POS_X, 
-                    HEIGHT - INFO_MENU_HEIGHT - BACKPACK_MENU_HEIGHT, INFO_MENU_WIDTH * 2)
+        Draw().rectangle(self._out, INFO_MENU_POS_Y + INFO_MENU_HEIGHT + BACKPACK_MENU_HEIGHT, 
+                         INFO_MENU_POS_X, 
+                    HEIGHT - INFO_MENU_HEIGHT - BACKPACK_MENU_HEIGHT - INFO_MENU_POS_Y, 
+                    INFO_MENU_WIDTH * 2)
+        self.update()
 
     def _ray_casting(self):
             # return
@@ -64,18 +68,16 @@ class RayCasting:
                 top = SCREEN_H - 1
 
                 if len(depth) > 1:
-                    for d in depth[:-1]:
-                        dist, char, size = d
+                    for i in range(len(depth) - 1):
+                        dist, char, size = depth[i]
                         height = min(int(WALL_HIGHT / dist), WALL_HIGHT)
                         ceil = (WALL_HIGHT - height) // 2
                         size = round(height * size)
                         start_point = min(height + ceil, top)
                         end_point = max(height + ceil - size, 0)
-                        top = end_point
                         for i in range(start_point, end_point - 1, -1):
                             chars[i][j] = char
-                        # if top <= 0:
-                        #     break
+                        top = end_point
 
             i = 0
             for line in chars:
@@ -86,7 +88,7 @@ class RayCasting:
 
 
     def _draw_map(self):
-        map_height = HEIGHT - INFO_MENU_HEIGHT - BACKPACK_MENU_HEIGHT - 2
+        map_height = HEIGHT - INFO_MENU_HEIGHT - BACKPACK_MENU_HEIGHT - INFO_MENU_POS_Y - 2
         map_width = INFO_MENU_WIDTH * 2 - 2
 
         y, x = self._model.player.pos
@@ -118,9 +120,10 @@ class RayCasting:
     def _get_depths(self):
         depths = {i: [] for i in range(NUM_RAYS)}
         step = 0.09
-        r_angle = self._model.player.angle * pi - HALF_FOV
+        player_angle = self._model.player.angle * pi
+        r_angle = player_angle - HALF_FOV
         for i in range(NUM_RAYS):
-            
+            # correction = cos(r_angle - player_angle)
             old_pos = None
 
             sin_a = sin(r_angle) * step
@@ -143,8 +146,9 @@ class RayCasting:
                     if obj in ROOM_WALLS:
                         break
                     if obj != FLOOR and not isinstance(obj, Player):
-
-                        if isinstance(obj, Monster):
+                        if isinstance(obj, Ghost) and obj.id != GHOST:
+                            continue
+                        elif isinstance(obj, Monster):
                             depths[i].append((depth, self._parent.converter(obj), 0.8))
                         elif isinstance(obj, Door):
                             depths[i].append((depth, self._parent.converter(obj), 1))

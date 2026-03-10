@@ -2,7 +2,8 @@ from common.constants import *
 from common.characters import *
 from common.playground import *
 from common.keymap import Command
-from .entity import Entity, Player, Item
+from .entity import Entity, Item
+from .player import Player
 from .navigator import Navigator
 from .monsters import Zombie, Snake, Ogre, Vampire, Ghost, Mimic
 from .dungeon import Room, Corridor
@@ -54,6 +55,9 @@ class Model:
         for m in data:
             monster = self.MONSTERS_DICT.get(m['id'], Mimic)()
             monster.set_features(m, self._nav)
+            if isinstance(monster, Ghost):
+                r = monster.room
+                monster._patrol_moves = tuple(self._rooms[r].floor)
             self._monsters[monster.pos] = monster
 
     def _items_from_dict(self, data:list):
@@ -65,13 +69,18 @@ class Model:
             if item.id == KEY:
                 self._doors[item.door.pos] = item.door
                 del self._matrix[item.door.pos]
+        keys = self._player.backpack.have[KEY]
+        for k in keys:
+            self._doors[k.door.pos] = k.door
+            del self._matrix[k.door.pos]
+
       
     def update(self, command):
         self._danger = []
         if self._gamestate == NORMAL:
             if isinstance(command, Command):
                 if command == Command.CHANGE_RENDER:
-                    self._player.angle = 1/2
+                    self._player.angle = -1/2
                     return
                 self._move_player(command)
                 if command not in (Command.ROTATE_LEFT, Command.ROTATE_RIGHT):
@@ -89,10 +98,7 @@ class Model:
             return
         
     def _get_pos(self, command):
-
-
         angle_delta = 1/16
-        
         if command == Command.ROTATE_LEFT:
             self._player.angle -= angle_delta
             return self._player.pos
@@ -124,6 +130,9 @@ class Model:
         return y, x
 
     def _move_player(self, command):
+        if not self._player.can_move:
+            self. _player.can_move = True
+            return
         pos = self._get_pos(command)
         if pos == self._player.pos:
             return
@@ -213,9 +222,6 @@ class Model:
     @property
     def first_screen(self):
         visible = {pos for pos in self._explored}
-        # for i in range(ROOMS):
-        #     if self._visited[i]:
-        #         visible.update(self._rooms[i].walls)
         return visible
 
     @property
@@ -297,6 +303,9 @@ class Model:
             if self.walkable(new_pos):
                 self._items[new_pos] = weapon
                 return
+            
+    def walkable(self, pos):
+        return self.valid(pos) and pos not in self._items and not pos in self._monsters
 
     @property
     def player(self):
@@ -347,7 +356,6 @@ class Model:
         data['items'] = [item.to_dict() for item in self._items.values()]
         data['rooms'] = [r.to_dict() for r in self._rooms ]
         data['corridors'] = [r.to_dict() for r in self._corridors ]
-        # data['visited'] = self._visited  
         data['statistics'] = self._statistics
 
         return data

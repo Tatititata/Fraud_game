@@ -14,7 +14,6 @@ class FlatRender:
         self._out = parent._out
         self._parent = parent
         self._model = model
-        Draw().clear_game_field(self._out, HEIGHT, WIDTH)
         self._old_visible = set()
         self._render_game(self._model.first_screen)
         

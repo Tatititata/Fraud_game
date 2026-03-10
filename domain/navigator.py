@@ -30,3 +30,8 @@ class Navigator:
     def open_door(self, key):
         return self._model.open_door(key)
     
+    def visible(self, pos):
+        return self._model.visible(pos)
+    
+    def layout(self, pos):
+        return self._model.layout(pos)

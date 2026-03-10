@@ -58,17 +58,25 @@ class MainRender:
         self._out.write(f'\033[5;5HPress \'l\' to load saved game.')
         self._out.write(f'\033[6;5HPress \'esc\' to quit.')
         self._out.write(f'\033[7;5HPress any other key to start new game.')
-        # self._out.flush()
+
 
     def show_gameover_menu(self):
+        Draw().clear_lines(self._out,
+                           INFO_MENU_POS_Y + INFO_MENU_HEIGHT + BACKPACK_MENU_HEIGHT, 
+                           INFO_MENU_POS_X,
+                           HEIGHT - INFO_MENU_HEIGHT - BACKPACK_MENU_HEIGHT)
         self._show_start_game_menu()
-        self._out.write(f'\033[3;5Hgame over')
+        self._out.write(f'\033[3;5HGAME OVER')
 
 
     def _show_level(self):
         self._out.write(f'\033[{SHIFT};{45+SHIFT}H Level {self._model.level} ')
 
     def show_win_screen(self):
+        Draw().clear_lines(self._out,
+                           INFO_MENU_POS_Y + INFO_MENU_HEIGHT + BACKPACK_MENU_HEIGHT, 
+                           INFO_MENU_POS_X,
+                           HEIGHT - INFO_MENU_HEIGHT - BACKPACK_MENU_HEIGHT)
         self._out.write('\033[2J\033[H')
         self._out.write(f'\033[3;3HYOU WIN')
         self._out.write(f'\033[4;3Hpress any key')
@@ -99,12 +107,11 @@ class MainRender:
         return self._mode
 
     def change_mode(self):
-        y, x = INFO_MENU_POS_Y + INFO_MENU_HEIGHT + BACKPACK_MENU_HEIGHT + 1, INFO_MENU_POS_X + 1
-        map_height = HEIGHT - INFO_MENU_HEIGHT - BACKPACK_MENU_HEIGHT
-        y, x = INFO_MENU_POS_Y + INFO_MENU_HEIGHT + BACKPACK_MENU_HEIGHT, INFO_MENU_POS_X
-        for i in range(y, y + map_height):
-            self._out.write(f'\033[{SHIFT + i};{x+SHIFT}H\033[0K')
-
+        Draw().clear_game_field(self._out, HEIGHT, WIDTH)
+        Draw().clear_lines(self._out,
+                           INFO_MENU_POS_Y + INFO_MENU_HEIGHT + BACKPACK_MENU_HEIGHT, 
+                           INFO_MENU_POS_X,
+                           HEIGHT - INFO_MENU_HEIGHT - BACKPACK_MENU_HEIGHT)
         self._mode = not self._mode
         self._render = self._renders[self._mode](self, self._model)
 
@@ -119,7 +126,6 @@ class MainRender:
                 return f'{obj.color + '&\033[0m'}'
             else:
                 return f'{self._symbols.get(obj.id, obj.id)}'
-
         else:
             return f'{self._symbols.get(obj, obj)}'
 

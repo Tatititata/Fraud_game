@@ -43,7 +43,7 @@ class MenuRender:
             t, l = record
             self._out.write(f'\033[{y+SHIFT};{x+SHIFT}H')
             self._out.write(f'{t:<8d} - - - {l:2d}'.center(INFO_MENU_WIDTH - 2))
-            record = next(records)
+            record = next(records, None)
             y += 1
         self._out.flush()        
 
@@ -153,7 +153,6 @@ class MenuRender:
         self._out.write('=== KEY ==='.center(INFO_MENU_WIDTH * 2 - 2))
 
     def _render_backpack_details(self):
-        # self._clear_backpack_menu()
         y = INFO_MENU_POS_Y + INFO_MENU_HEIGHT + 2
         x = 101
         for i, el in enumerate(self._model.backpack, 1):

@@ -1,9 +1,3 @@
-
-
-
-
-EXIT =  '█' #'>'
-
 ROOMS = 9
 OFFSET = 0
 MIN_ROOM_WIDTH = 8 + OFFSET

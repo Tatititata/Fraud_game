@@ -58,7 +58,7 @@ class Rouge:
 
             if model.passed:
 
-                if model.level >= 20:
+                if model.level >= 21:
                     Saver().remove_saved_model()
                     self._render.show_win_screen()
                     return self._user_input.getchar()

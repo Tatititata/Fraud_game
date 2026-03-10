@@ -1,8 +1,8 @@
 from common.characters import *
-from .entity import Character
+from .entity import Character, Entity
 from random import randint, choice
 from .bresenham import Bresenham
-
+from common.playground import GROUND
 
 class Monster(Character):
     def __init__(self, id, pos, r):
@@ -26,19 +26,30 @@ class Monster(Character):
         return randint(1, self.hostility + self.strength + self.dexterity+ self.MAX_health)
 
 
-    def _patrol(self):
+    def _patrol(self, player=None):
         idx = randint(0, len(self._patrol_moves) - 1)
         pos = (self.pos[0] + self._patrol_moves[idx][0], self.pos[1] + self._patrol_moves[idx][1])
-        if self._nav.valid(pos):
+        if self._nav.valid_for_monsters(pos) and self._nav.room_number(pos) == self.room:
             self._pos = pos
 
-    def move(self, player):
-        
 
+    def attack(self, target):
+        random_value = randint(1, self.dexterity + target.dexterity)
+        if random_value <= self.dexterity:
+            damage = self.strength - target.strength
+            damage = 1 if damage < 1 else damage
+            target.health -= damage
+            self._nav.add_statistics('hits_taken')
+            self._nav.add_statistics('health_used', damage)
+            self._nav.add_danger(f'{self.__class__.__name__} hit you!')
+        else:
+            self._nav.add_danger(f'{self.__class__.__name__} tried to hit you and missed!')
+
+    def move(self, player):
         pos = self._step_to_player(player)
         if pos is not None:
             if pos != player.pos:
-                self._nav.add_danger(f'{self.id} sees you! {self.id} health is {self.health}.')
+                self._nav.add_danger(f'{self.__class__.__name__} sees you! It\'s health is {self.health}.')
                 if self._nav.valid_for_monsters(pos):
                     self.pos = pos
             else:
@@ -47,7 +58,7 @@ class Monster(Character):
             if self.room != self._nav.room_number(self.pos):
                 self._go_home()
             else:
-                self._patrol()
+                self._patrol(player)
 
     def _step_to_player(self, player):
         y0, x0 = self.pos
@@ -80,49 +91,6 @@ class Monster(Character):
                         path[new_pos] = pos
             stack = new_stack
 
-    # def _path_to_player(self, player): 
-    #     y0, x0 = self.pos
-    #     y1, x1 = player.pos
-    #     dy = abs(y1 - y0)
-    #     dx = abs(x1 - x0)
-    #     if max(dy, dx) > self.hostility:
-    #         return None
-    #     sy = 1 if y0 < y1 else -1
-    #     sx = 1 if x0 < x1 else -1
-    #     y, x = y0, x0
-    #     if dx > dy:
-    #         d = 2*dy - dx
-    #         while True: 
-    #             x += sx
-    #             if y == y1 and x == x1:
-    #                 return y0, x0 + sx
-    #             if not self._nav.valid((y, x)):
-    #                 return None          
-    #             if d >= 0:
-    #                 y += sy      
-    #                 if y == y1 and x == x1:
-    #                     return y0, x0 + sx
-    #                 d -= 2*dx
-    #                 if not self._nav.valid((y, x)):
-    #                     return None
-    #             d += 2*dy        
-    #     else:        
-    #         d = 2*dx - dy
-    #         while True:
-    #             y += sy       
-    #             if y == y1 and x == x1:
-    #                 return y0 + sy, x0 
-    #             if not self._nav.valid((y, x)):
-    #                 return None
-    #             if d >= 0:
-    #                 x += sx  
-    #                 if y == y1 and x == x1:
-    #                     return y0 + sy, x0 
-    #                 d -= 2*dy  
-    #                 if not self._nav.valid((y, x)):
-    #                     return None
-    #             d += 2*dx   
-
     def __repr__(self):
         return str(self.to_dict())
 
@@ -152,7 +120,22 @@ class Snake(Monster):
         super().__init__(SNAKE, pos, r)
         self._patrol_moves = ((1, 1), (-1, 1), (1, -1), (-1, -1))
         # self._go_home_moves = ((1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1), (1, -1), (-1, -1))
-        
+
+  # Змей-маг (отображение: белая s): очень высокая ловкость. 
+  # Ходит по карте по диагонали, постоянно меняя сторону. 
+  # У каждой успешной атаки есть вероятность «усыпить» игрока на один ход. 
+  # Высокая враждебность.
+
+    def attack(self, target):
+        random_value = randint(1, self.dexterity + target.dexterity)
+        if random_value <= self.dexterity:
+            target.can_move = False
+            self._nav.add_statistics('hits_taken')
+            self._nav.add_danger(f'The Snake put you to sleep for 1 turn.')
+        else:
+            self._nav.add_danger(f'The Snake tried to hit you and missed!')
+
+
 class Ogre(Monster):
 
     MIN_health = 15
@@ -166,6 +149,28 @@ class Ogre(Monster):
 
     def __init__(self, pos=None, r=None):
         super().__init__(OGRE, pos, r)
+        self.can_attack = True
+        self._patrol_moves = ((1, 0), (0, 1), (-1, 0), (0, -1), 
+                              (2, 0), (0, 2), (-2, 0), (0, -2)
+                              )
+# Огр (отображение: желтый O): ходит по комнате на две клетки. 
+# Очень высокая сила и здоровье, но после каждой атаки отдыхает один ход, 
+# затем гарантированно контратакует; низкая ловкость; средняя враждебность.
+
+    def attack(self, target):
+        if self.can_attack:
+            damage = self.strength - target.strength
+            damage = 1 if damage < 1 else damage
+            target.health -= damage
+            self._nav.add_statistics('hits_taken')
+            self._nav.add_statistics('health_used', damage)
+            self._nav.add_danger(f'Ogre hit you!')
+            self.can_attack = False
+        else:
+            self.can_attack = True
+            self._nav.add_danger(f'Ogre rests.')
+
+
 
 class Vampire(Monster):
 
@@ -180,6 +185,25 @@ class Vampire(Monster):
 
     def __init__(self, pos=None, r=None):
         super().__init__(VAMPIRE, pos, r)
+        self.first_hit = False
+
+
+# Вампир (отображение: красная v): высокая ловкость, враждебность и здоровье; 
+# средняя сила. Отнимает некоторое количество максимального уровня здоровья 
+# игроку при успешной атаке. Первый удар по вампиру — всегда промах. 
+    def attack(self, target):
+        random_value = randint(1, self.dexterity + target.dexterity)
+        if random_value <= self.dexterity:
+            damage = 1
+            target.max_health -= damage
+            if target.health > target.max_health:
+                target.health = target.max_health
+            self._nav.add_statistics('hits_taken')
+            self._nav.add_statistics('health_used', damage)
+            self._nav.add_danger(f'{self.id} hit you!')
+        else:
+            self._nav.add_danger(f'{self.id} tried to hit you and missed!')
+
 
 class Ghost(Monster):
 
@@ -194,6 +218,33 @@ class Ghost(Monster):
 
     def __init__(self, pos=None, r=None):
         super().__init__(GHOST, pos, r)
+        self.attacked = False
+# Привидение (отображение: белый g): высокая ловкость; низкая сила, враждебность и здоровье. 
+# Постоянно телепортируется по комнате и периодически становится невидимым, 
+# пока игрок не вступил в бой.
+
+    def move(self, player):
+        super().move(player)
+        pos = self._pos
+        if not self.attacked:
+            if randint(0, 1):
+                self.id = GHOST
+            else:
+                self.id = self._nav.layout(pos)
+                if self.id == GROUND:
+                    value = self._nav.visible(pos)
+                    if isinstance(value, Entity):
+                        self.id = value.id
+                    else:
+                        self.id = value
+            
+    def _patrol(self, player):
+        idx = randint(0, len(self._patrol_moves) - 1)
+        pos = self._patrol_moves[idx]
+        if self._nav.valid_for_monsters(pos) and pos != player.pos:
+            self._pos = pos
+
+
 
 class Zombie(Monster):
 
@@ -208,6 +259,9 @@ class Zombie(Monster):
 
     def __init__(self, pos=None, r=None):
         super().__init__(ZOMBIE, pos, r)
+    # Зомби (отображение: зеленый z): низкая ловкость; 
+    # средняя сила, враждебность; высокое здоровье.
+
 
 class Mimic(Monster):
 # - Добавь в игру противника Мимик (белая m), который имитирует предметы. 

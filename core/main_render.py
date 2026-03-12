@@ -15,20 +15,10 @@ class MainRender:
 
     _renders = [FlatRender, RayCasting]
     _symbols = {
-        PLAYER : '\033[1;37m@\033[0m',
-        ZOMBIE : '\033[1;32mZ\033[0m',
-        VAMPIRE : '\033[1;31mV\033[0m',
-        GHOST : '\033[1;37mG\033[0m',
-        OGRE : '\033[1;33mO\033[0m',
-        SNAKE : '\033[1;37mS\033[0m',
-        TREASURE : '\033[1;37m*\033[0m',
-        FOOD : '\033[1;37m%\033[0m',
-        POTION : '\033[1;37m!\033[0m',
-        SCROLL : '\033[1;37m?\033[0m',
-        WEAPON : '\033[1;37m)\033[0m',
-        FLOOR : '\033[2m·\033[0m',
-        MIMIC : '\033[1;37mM\033[0m',
-        EXIT : '\033[1;37m█\033[0m',
+        # TREASURE : '\033[1;37m*\033[0m',
+        FLOOR : '\033[2m·\033[0m'
+        # MIMIC : '\033[1;37mM\033[0m',
+        # EXIT : '\033[1;37m█\033[0m',
         }
 
     def __init__(self, out):
@@ -37,6 +27,7 @@ class MainRender:
         Draw().rectangle(self._out, 0, 0, HEIGHT, WIDTH)
         self._menu_render = MenuRender(self)
         self._show_start_game_menu()
+        # self._show_controls()
         self._out.flush()
 
     def set_up(self, model):
@@ -113,21 +104,36 @@ class MainRender:
                            INFO_MENU_POS_X,
                            HEIGHT - INFO_MENU_HEIGHT - BACKPACK_MENU_HEIGHT)
         self._mode = not self._mode
+        # self._show_controls()
         self._render = self._renders[self._mode](self, self._model)
+        
+
+
+    def _show_controls(self):
+        y = CONTROLS_POS_Y
+        x = CONTROLS_POS_X
+        self._out.write(f'\033[{y + SHIFT};{x + SHIFT}H')
+        if self._mode:
+            self._out.write('w: forward | d: rotate right')
+            y += 1
+            self._out.write(f'\033[{y + SHIFT};{x + SHIFT}H')
+            self._out.write('s: back | a: rotate left')
+        else:
+            self._out.write('w: up, s: down, d: right, a: left'.center(INFO_MENU_WIDTH * 2))
 
 
     def converter(self, obj):
-        if isinstance(obj, Character):
-            return f'{self._symbols.get(obj.id, obj.id)}'
-        elif isinstance(obj, Door):
-            return f'{obj.color + 'x\033[0m'}'
-        elif isinstance(obj, Item):
-            if hasattr(obj, 'color'):
-                return f'{obj.color + '&\033[0m'}'
-            else:
-                return f'{self._symbols.get(obj.id, obj.id)}'
-        else:
-            return f'{self._symbols.get(obj, obj)}'
+        # if isinstance(obj, Character):
+        #     return f'{self._symbols.get(obj.id, obj.id)}'
+        # elif isinstance(obj, Door):
+        #     return f'{obj.color + 'x\033[0m'}'
+        # elif isinstance(obj, Item):
+        #     if hasattr(obj, 'color'):
+        #         return f'{obj.color + '&\033[0m'}'
+        #     else:
+        #         return f'{self._symbols.get(obj.id, obj.id)}'
+        # else:
+        return f'{self._symbols.get(obj, obj)}'
 
 
     if __name__ == "__main__":

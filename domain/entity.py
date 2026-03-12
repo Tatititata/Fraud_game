@@ -130,12 +130,20 @@ class Entity:
 
     def to_dict(self):
         return {'pos': self._pos, 'id': self.id}
+    
+    def __str__(self):
+        return '\033[1;37m' + self.id + '\033[0m'
+    
+
 
 class Door(Entity):
     def __init__(self, id, pos, color):
         super().__init__(id, pos)
         self.color = color
     
+
+    def __str__(self):
+        return f'{self.color + 'x\033[0m'}'
 
 class Item(Entity):
     def __init__(self, data):
@@ -190,6 +198,12 @@ class Item(Entity):
         
     def __repr__(self):
         return str(self.__dict__)
+
+    def __str__(self):
+        if self.id == KEY:
+            return f'{self.color + '&\033[0m'}'
+        else:
+            return super().__str__()
 
 
 class Character(Entity):

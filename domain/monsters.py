@@ -1,5 +1,6 @@
 from common.characters import *
 from .entity import Character, Entity
+from common.playground import FLOOR
 from random import randint, choice
 from .bresenham import Bresenham
 from common.playground import GROUND
@@ -51,6 +52,8 @@ class Monster(Character):
             if pos != player.pos:
                 self._nav.add_danger(f'{self.__class__.__name__} sees you! It\'s health is {self.health}.')
                 if self._nav.valid_for_monsters(pos):
+                    if isinstance(self, Ghost):
+                        self._handle_invisibility(pos)
                     self.pos = pos
             else:
                 self.attack(player)
@@ -85,6 +88,8 @@ class Monster(Character):
                                 new_pos = pos
                                 pos = path[pos]
                             if self._nav.valid(new_pos):
+                                if isinstance(self, Ghost):
+                                    self._handle_invisibility(pos)
                                 self._pos = new_pos
                             return
                         new_stack.append(new_pos)
@@ -121,6 +126,9 @@ class Snake(Monster):
         super().__init__(SNAKE, pos, r)
         self._patrol_moves = ((1, 1), (-1, 1), (1, -1), (-1, -1))
         # self._go_home_moves = ((1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1), (1, -1), (-1, -1))
+    
+    def __str__(self):
+        return '\033[1;37mS\033[0m'
 
   # Змей-маг (отображение: белая s): очень высокая ловкость. 
   # Ходит по карте по диагонали, постоянно меняя сторону. 
@@ -154,6 +162,9 @@ class Ogre(Monster):
         self._patrol_moves = ((1, 0), (0, 1), (-1, 0), (0, -1), 
                               (2, 0), (0, 2), (-2, 0), (0, -2)
                               )
+    def __str__(self):
+        return  '\033[1;33mO\033[0m'
+        
 # Огр (отображение: желтый O): ходит по комнате на две клетки. 
 # Очень высокая сила и здоровье, но после каждой атаки отдыхает один ход, 
 # затем гарантированно контратакует; низкая ловкость; средняя враждебность.
@@ -188,6 +199,8 @@ class Vampire(Monster):
         super().__init__(VAMPIRE, pos, r)
         self.first_hit = False
 
+    def __str__(self):
+        return '\033[1;31mV\033[0m'
 
 # Вампир (отображение: красная v): высокая ловкость, враждебность и здоровье; 
 # средняя сила. Отнимает некоторое количество максимального уровня здоровья 
@@ -224,28 +237,31 @@ class Ghost(Monster):
 # Постоянно телепортируется по комнате и периодически становится невидимым, 
 # пока игрок не вступил в бой.
 
-    def move(self, player):
-        super().move(player)
-        pos = self._pos
-        if not self.attacked:
-            if randint(0, 1):
-                self.id = GHOST
-            else:
-                self.id = self._nav.layout(pos)
-                if self.id == GROUND:
-                    value = self._nav.visible(pos)
-                    if isinstance(value, Entity):
-                        self.id = value.id
-                    else:
-                        self.id = value
             
     def _patrol(self, player):
         idx = randint(0, len(self._patrol_moves) - 1)
         pos = self._patrol_moves[idx]
         if self._nav.valid_for_monsters(pos) and pos != player.pos:
+            self._handle_invisibility(pos)
             self._pos = pos
 
+    def _handle_invisibility(self, pos):
+        if self.attacked:
+            return
+        if randint(0, 1):
+                self.id = GHOST
+        else:
+            value = self._nav.layout(pos)
+            if value == GROUND:
+                value = self._nav.visible(pos)
+                if isinstance(value, Entity):
+                    value = value.id
+            self.id = value
 
+    def __str__(self):
+        if self.id == FLOOR:
+            return '\033[2m·\033[0m'
+        return '\033[1;37m' + self.id + '\033[0m'
 
 class Zombie(Monster):
 
@@ -263,6 +279,8 @@ class Zombie(Monster):
     # Зомби (отображение: зеленый z): низкая ловкость; 
     # средняя сила, враждебность; высокое здоровье.
 
+    def __str__(self):
+        return '\033[1;32mZ\033[0m'
 
 class Mimic(Monster):
 # - Добавь в игру противника Мимик (белая m), который имитирует предметы. 
@@ -292,7 +310,7 @@ class Mimic(Monster):
             return
         super().move(player)
 
-    def _patrol(self):
+    def _patrol(self, player):
         if not self._active:
             return
         super()._patrol()

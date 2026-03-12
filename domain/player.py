@@ -151,8 +151,11 @@ class Player(Character):
             self._drop_weapon()
         self.current_weapon = item
 
-    def __repr__(self):
-        return repr({k: v for k, v in self.__dict__.items() if not k.startswith('_')})
+    # def __repr__(self):
+    #     return repr({k: v for k, v in self.__dict__.items() if not k.startswith('_')})
+    
+    def __str__(self):
+        return '\033[1;37m@\033[0m'
     
 #     + сокровища (имеют стоимость, накапливаются и влияют на итоговый рейтинг, 
 # можно получить только при победе над монстром);
@@ -163,4 +166,7 @@ class Player(Character):
 # Ключ (key): & (для дополнительного задания)
 
 if __name__ == '__main__':
-    print(Player().__dict__)
+    import sys
+    sys.stdout.write(f'{Player()}\n')
+    # print(Player())
+    # print(Player().__dict__)

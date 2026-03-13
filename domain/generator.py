@@ -511,7 +511,7 @@ class Generator:
             else:
                 l[i.pos] = i.id
         for m in self._monsters:
-            l[m.pos] = 'M'
+            l[m.pos] = str(m)
         layout = '\n'.join(f"{i:02}{''.join(l.get((i, j), ' ') for j in range(WIDTH))}"  for i in range(HEIGHT))
         s1 = '  ' + ''.join(str(i) + ' ' * 9 for i in range(10)) + '\n'
         s2 = '  ' + ''.join(str(i) for i in range(10)) * 10 + '\n'

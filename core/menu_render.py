@@ -13,7 +13,7 @@ class MenuRender:
         self._out = parent._out
         self._show_game_menu()
         self._show_record_menu()
-
+        self._clear_backpack_menu()
         self._old_backpack = set()
 
     def set_up(self, model):
@@ -90,7 +90,6 @@ class MenuRender:
     def update(self):
         gamestate = self._model.gamestate
         self._clear_backpack_menu()
-        
         
         if gamestate == NORMAL:
             self._show_danger()

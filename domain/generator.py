@@ -31,8 +31,7 @@ class Generator:
                 self._matrix = set((0, j) for j in range(WIDTH)) 
                 self._matrix.update(set((i, 0) for i in range(HEIGHT)))
 
-                # self._rooms = [Room(*r) for r in self._generate_rooms()]
-                self._rooms = [Room((i, *r)) for i, r in enumerate(self._generate_rooms_full_random())]
+                self._rooms = [Room((i, *r)) for i, r in enumerate(self._generate_rooms())]
 
                 # no corridors yet:
                 edges = self._connect_rooms()
@@ -66,14 +65,14 @@ class Generator:
                 success = False
             if len(exceptions) > 2:
                 raise AttributeError(exceptions)
-        with open('layout.txt', 'a') as f:
-            f.write(f'{self.__repr__()}\n')
-            f.write('rooms\n')
-            for r in self._rooms:
-                f.write(f'{r}\n')
-            f.write(f'corridors\n')
-            for c in self._corridors:
-                f.write(f'{c}\n')
+        # with open('layout.txt', 'a') as f:
+        #     f.write(f'{self.__repr__()}\n')
+        #     f.write('rooms\n')
+        #     for r in self._rooms:
+        #         f.write(f'{r}\n')
+        #     f.write(f'corridors\n')
+        #     for c in self._corridors:
+        #         f.write(f'{c}\n')
         
 
     def _most_distant_points(self, pos=None):
@@ -173,7 +172,7 @@ class Generator:
         self._corridors = [c for i, c in enumerate(self._corridors) if i not in indexes]
 
 
-    def _generate_rooms_full_random(self) -> list:
+    def _generate_rooms(self) -> list:
         rooms = []
         for r in range(1, ROOMS + 1):
             created = False
@@ -527,7 +526,7 @@ class Generator:
 
 
     def _place_keys(self, keys):
-        # return
+        return
         key_positions = set()
         for room_with_keys, closed_rooms in keys.items():
             for room in closed_rooms:
@@ -602,7 +601,7 @@ class Generator:
         
     def _place_monsters(self, start):
         self._monsters = set()
-        # return
+        return
         rooms = {start,}
         quantity = round(randint(3, 5) * self._k_monsters_quantity)
         monsters = list(MONSTERS)[:quantity]

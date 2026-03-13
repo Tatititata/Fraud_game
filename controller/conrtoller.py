@@ -3,7 +3,7 @@
 from domain.model_factory import ModelFactory
 from core.main_render import MainRender
 
-from core.terminal import Terminal
+from core.terminal import TerminalFactory
 from core.command_interpreter import InputHandler, CommanInterpreter
 from datalayer.records import Records
 from datalayer.loader import Saver
@@ -19,9 +19,10 @@ class Rouge:
         self._render = None
 
     def run(self):
-        with Terminal() as term:
+
+        with TerminalFactory().create() as term:
             self._render = MainRender(term.stdout)
-            self._user_input = InputHandler(term.fd)
+            self._user_input = InputHandler(term)
             
             self._start_game()
 

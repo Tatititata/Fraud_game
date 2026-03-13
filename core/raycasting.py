@@ -66,10 +66,13 @@ class RayCasting:
                     chars[i][j] = f"\033[38;2;{r};{g};{b}m{char}"
 
                 top = SCREEN_H - 1
-
+                prev_size = 0
                 if len(depth) > 1:
                     for i in range(len(depth) - 1):
                         dist, char, size = depth[i]
+                        if prev_size > size:
+                            break
+                        prev_size = size
                         height = min(int(WALL_HIGHT / dist), WALL_HIGHT)
                         ceil = (WALL_HIGHT - height) // 2
                         size = round(height * size)

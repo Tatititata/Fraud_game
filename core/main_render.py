@@ -14,12 +14,6 @@ from domain.entity import Character, Item, Door
 class MainRender:
 
     _renders = [FlatRender, RayCasting]
-    _symbols = {
-        # TREASURE : '\033[1;37m*\033[0m',
-        FLOOR : '\033[2m·\033[0m'
-        # MIMIC : '\033[1;37mM\033[0m',
-        # EXIT : '\033[1;37m█\033[0m',
-        }
 
     def __init__(self, out):
         self._mode = 0
@@ -46,18 +40,58 @@ class MainRender:
 
     def _show_start_game_menu(self):
         Draw().clear_game_field(self._out, HEIGHT, WIDTH)
-        self._out.write(f'\033[5;5HPress \'l\' to load saved game.')
-        self._out.write(f'\033[6;5HPress \'esc\' to quit.')
-        self._out.write(f'\033[7;5HPress any other key to start new game.')
+        self._out.write('\033[6;2H')
+        self._out.write('===================================='.center(WIDTH - 2))
+        self._out.write('\033[7;2H')
+        self._out.write('\033[1mCONTROLS\033[0m'.center(WIDTH - 2))
+        self._out.write('\033[8;2H')
+        self._out.write('===================================='.center(WIDTH - 2))
+        self._out.write('\033[10;2H')
+        self._out.write('2D VIEW:'.center(WIDTH - 2))
+        self._out.write('\033[12;2H')
+        self._out.write('\033[1mw\033[0m - move up  '.center(WIDTH - 2))
+        self._out.write('\033[13;2H')
+        self._out.write('\033[1ms\033[0m - move down'.center(WIDTH - 2))
+        self._out.write('\033[14;2H')
+        self._out.write('\033[1ma\033[0m - move left'.center(WIDTH - 2))
+        self._out.write('\033[15;2H')
+        self._out.write('\033[1md\033[0m - move right'.center(WIDTH - 2))
+        self._out.write('\033[17;2H')
+        self._out.write('------------------------------------'.center(WIDTH - 2))
+        self._out.write('\033[18;2H')
+        self._out.write('\033[1mF5\033[0m - change view (2D/3D)'.center(WIDTH - 2))
+        self._out.write('\033[19;2H')
+        self._out.write('------------------------------------'.center(WIDTH - 2))
+        self._out.write('\033[21;2H')
+        self._out.write('3D VIEW:'.center(WIDTH - 2))
+        self._out.write('\033[23;2H')
+        self._out.write('\033[1mw\033[0m - move forward  '.center(WIDTH - 2))
+        self._out.write('\033[24;2H')
+        self._out.write('\033[1ms\033[0m - move backward'.center(WIDTH - 2))
+        self._out.write('\033[25;2H')
+        self._out.write('\033[1ma\033[0m - rotate left  '.center(WIDTH - 2))
+        self._out.write('\033[26;2H')
+        self._out.write('\033[1md\033[0m - rotate right  '.center(WIDTH - 2))
+        self._out.write('\033[28;2H')
+        self._out.write('------------------------------------'.center(WIDTH - 2))
+        self._out.write('\033[29;2H')
+        self._out.write('\033[1mESC\033[0m - quit'.center(WIDTH - 2))
+        self._out.write('\033[30;2H')
+        self._out.write('------------------------------------'.center(WIDTH - 2))
+        self._out.write('\033[32;2H')
+        self._out.write('\033[1ml\033[0m - load saved game'.center(WIDTH - 2))
+        self._out.write('\033[34;2H')
+        self._out.write('Press any other key to start new game'.center(WIDTH - 2))
 
 
     def show_gameover_menu(self):
         Draw().clear_lines(self._out,
-                           INFO_MENU_POS_Y + INFO_MENU_HEIGHT + BACKPACK_MENU_HEIGHT, 
+                           INFO_MENU_POS_Y + INFO_MENU_HEIGHT, 
                            INFO_MENU_POS_X,
-                           HEIGHT - INFO_MENU_HEIGHT - BACKPACK_MENU_HEIGHT)
+                           HEIGHT - INFO_MENU_HEIGHT)
         self._show_start_game_menu()
-        self._out.write(f'\033[3;5HGAME OVER')
+        self._out.write(f'\033[3;2H')
+        self._out.write('GAME OVER'.center(WIDTH - 2))
 
 
     def _show_level(self):
@@ -77,12 +111,14 @@ class MainRender:
         self._menu_render.update_records(records)
 
     def update(self):
+        
         if self._model.gamestate:
             if self._model.gamestate == NORMAL:
                 self._render.update()
-            self._menu_render.update()
+            
         else:
             self.show_gameover_menu()
+        self._menu_render.update()
         self._out.flush()
 
     @property
@@ -123,17 +159,9 @@ class MainRender:
 
 
     def converter(self, obj):
-        # if isinstance(obj, Character):
-        #     return f'{self._symbols.get(obj.id, obj.id)}'
-        # elif isinstance(obj, Door):
-        #     return f'{obj.color + 'x\033[0m'}'
-        # elif isinstance(obj, Item):
-        #     if hasattr(obj, 'color'):
-        #         return f'{obj.color + '&\033[0m'}'
-        #     else:
-        #         return f'{self._symbols.get(obj.id, obj.id)}'
-        # else:
-        return f'{self._symbols.get(obj, obj)}'
+        if obj == FLOOR:
+            return '\033[2m·\033[0m'
+        return str(obj)
 
 
     if __name__ == "__main__":

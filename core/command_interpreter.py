@@ -1,14 +1,15 @@
-from os import read
+
 from common.keymap import *
 
 
 class InputHandler:
 
-    def __init__(self, fd):
-        self._fd = fd
-
-    def getchar(self):
-        return read(self._fd, 5).decode()
+    def __init__(self, terminal):
+        if hasattr(terminal, 'fd'):  # Linux
+            from os import read
+            self.getchar = lambda: read(terminal.fd, 5).decode()
+        else:  # Windows
+            self.getchar = terminal.getch
 
 
 class CommanInterpreter:

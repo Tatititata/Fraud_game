@@ -526,7 +526,7 @@ class Generator:
 
 
     def _place_keys(self, keys):
-        return
+        # return
         key_positions = set()
         for room_with_keys, closed_rooms in keys.items():
             for room in closed_rooms:
@@ -601,7 +601,7 @@ class Generator:
         
     def _place_monsters(self, start):
         self._monsters = set()
-        return
+        # return
         rooms = {start,}
         quantity = round(randint(3, 5) * self._k_monsters_quantity)
         monsters = list(MONSTERS)[:quantity]
@@ -643,60 +643,11 @@ class Generator:
         data['path_length'] = self._path 
         return data
 
-    @property
-    def layout(self):
-        l = {pos: '_' for c in self._corridors for pos in c.walls}
-        for r in self._rooms:
-            for floor in r.floor:
-                l[floor] = '_'
-        l[self._end] = '█'
-        for i in self._items:
-            if i.id == KEY:
-                l[i.pos] = i.door.pos
-                del l[i.door.pos]
-        return l
-
-def check_keys(p, e, matrix):
-    with open('check_keys.txt', 'w') as f:
-        delta = ((0, 1), (1, 0), (-1, 0), (0, -1))
-        while True:
-            visited = set()
-            stack = [p]
-            while stack:
-                if stack == [p]:
-                    f.write(f'{stack}\n')
-                pos = stack.pop()
-                for dy, dx in delta:
-                    new_pos = pos[0] + dy, pos[1] + dx
-                    if new_pos in matrix and new_pos not in visited:
-                        if new_pos == e:
-                            print(e)
-                            print(f'not used keys: {[(k, v) for k, v in matrix.items() if v != '_']}')
-                            return
-                        if matrix[new_pos] != '_':
-                            print(f'key pos = {new_pos}, door pos = {matrix[new_pos]}')
-                            matrix[matrix[new_pos]] = '_'
-                            matrix[new_pos] = '_'
-                        stack.append(new_pos)
-                        visited.add(new_pos)
-            # stack = [p]
-            # visited = set()
-            
-        print('no exit')
-        print(stack)
-        print(matrix)
-
 
 if __name__ == '__main__':
-    # Generator()
+
     print(Generator())
-    
-    # l = Generator()
-    # print(l)
-    # matrix = l.layout
-    # p = l._player.pos
-    # e = l._end
-    # check_keys(p, e, matrix)
+
 
 
 

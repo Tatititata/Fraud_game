@@ -11,14 +11,14 @@ class Adapter:
 
   
     def update(self, model):
-        with open('adapter.txt', 'w') as f:
-            f.write(f'\nmodel.full_statistics\n')
-            for k, v in model.full_statistics.items():
-                if not hasattr(self, k):
-                    setattr(self, k, [])
-                l = getattr(self, k).append(v)
-                f.write(f'{k} - {v}\n')
-            f.write(f'\n')
+        # with open('adapter.txt', 'w') as f:
+        #     f.write(f'\nmodel.full_statistics\n')
+        for k, v in model.full_statistics.items():
+            if not hasattr(self, k):
+                setattr(self, k, [])
+            l = getattr(self, k).append(v)
+            #     f.write(f'{k} - {v}\n')
+            # f.write(f'\n')
 
         m_killed = self.monsters_killed[-1]
         m_left = self.monsters_left[-1]

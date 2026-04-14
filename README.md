@@ -1,7 +1,7 @@
 # Fraud Game (Python)
 
 ![screenshot](screencasts/1.png)
-<video src="screencasts/7.webm" controls width="800"></video>
+
 
 A console roguelike game inspired by **Rogue (1980)**  with procedural dungeon generation, implemented in **Python 3.12**. \
 The game is fully turn-based: every player action triggers actions from enemies.
